@@ -18,6 +18,13 @@ public:
     void render() override;
     void postRender() override;
 
+    inline D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor() const {
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameBuffIndex, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
+    };
+    
+    inline ID3D12Device5* getDevice() const { return device.Get(); };
+    inline ID3D12GraphicsCommandList4* getCommandList() const { return commandList.Get(); };
+
 
 private:
 
@@ -31,7 +38,7 @@ private:
 
     // Set up //
     ComPtr<ID3D12Device5> device;
-    HWND hWnd; // window handle
+    HWND hWnd = nullptr; // window handle
 
     // Commands //
     ComPtr<ID3D12CommandQueue> queue;
@@ -47,7 +54,7 @@ private:
 
     ComPtr<IDXGISwapChain4> swapChain;  // contains frame buffers
     ComPtr<ID3D12Resource> frameBuffers [FRAMES_IN_FLIGHT]; // (for quicker 
-    unsigned int currentFrameBuffIndex;                 // access) <- need to be updated accordingly
+    unsigned int currentFrameBuffIndex;                 // access) <- this one has to be updated accordingly
 
     ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap; // for passing frame buffers
 
@@ -56,14 +63,22 @@ private:
     UINT64 fenceValues [FRAMES_IN_FLIGHT] = {0}; // one per frame
     UINT64 currentExecution;
     
-    HANDLE drawEvent; // to associate fence values (and cause waiting until them)
+    HANDLE drawEvent = nullptr; // to associate fence values (and cause waiting until them)
 
     // Other options //
+    bool supportsRT = false;
     bool allowTearing = false;
 
 
-    inline bool createDevice();
+    void enableDebugLayer();
+    bool createFactory();
+    bool createDevice(bool useWarp);
+    bool setupInfoQueue();
+    bool createDrawCommandQueue();
+    bool createSwapChain();
+    bool createRenderTargets();
+    bool createCommandList();
+    bool createDrawFence();
 
     inline void WaitForFence(UINT64 value);
-    inline void waitForGPU(); // uses WaitForFence
 };

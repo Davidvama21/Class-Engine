@@ -7,6 +7,7 @@
 #include <chrono>
 
 class Module;
+class D3D12Module;
 
 class Application
 {
@@ -27,11 +28,15 @@ public:
     bool                        isPaused() const { return paused; }
     bool                        setPaused(bool p) { paused = p; return paused; }
 
+    inline D3D12Module* getD3D12Module() const { return d3d12Module; };
+
 private:
     enum { MAX_FPS_TICKS = 30 };
     typedef std::array<uint64_t, MAX_FPS_TICKS> TickList;
 
     std::vector<Module*> modules;
+	
+    D3D12Module* d3d12Module; // TO RECONSIDER
 
     uint64_t  lastMilis = 0;
     TickList  tickList;

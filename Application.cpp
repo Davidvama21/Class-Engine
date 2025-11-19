@@ -1,13 +1,17 @@
 #include "Globals.h"
 #include "Application.h"
 #include "ModuleInput.h"
+#include "EditorModule.h"
 #include "D3D12Module.h"
-
 
 Application::Application(int argc, wchar_t** argv, void* hWnd)
 {
-    modules.push_back(new ModuleInput((HWND)hWnd));
-    modules.push_back(new D3D12Module((HWND)hWnd));
+    modules.push_back(new EditorModule((HWND)hWnd));
+
+    d3d12Module = new D3D12Module((HWND)hWnd);
+    modules.push_back(d3d12Module);
+
+    modules.push_back(new ModuleInput((HWND)hWnd)); // we may want to change this in the future
 }
 
 Application::~Application()
@@ -22,9 +26,12 @@ Application::~Application()
  
 bool Application::init()
 {
-	bool ret = true;
 
-	for(auto it = modules.begin(); it != modules.end() && ret; ++it)
+    // forced inverse execution (not the most optimal way, but it will work)
+    bool ret = modules[1]->init();
+    if (ret) ret = modules[0]->init();
+
+	for(auto it = modules.begin() + 2; it != modules.end() && ret; ++it)
 		ret = (*it)->init();
 
     lastMilis = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -53,8 +60,6 @@ void Application::update()
 
         for (auto it = modules.begin(); it != modules.end(); ++it)
             (*it)->preRender();
-
-        // (we could add here render execution for modules that require to do it earlier; or maybe other kind of function...)
 
         for (auto it = modules.begin(); it != modules.end(); ++it)
             (*it)->render();
