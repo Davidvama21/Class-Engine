@@ -2,7 +2,11 @@
 #include "Application.h"
 #include "ModuleInput.h"
 #include "EditorModule.h"
+#include "ModuleResources.h"
 #include "D3D12Module.h"
+
+//#include "Exercise1.h"
+#include "Exercise2.h"
 
 Application::Application(int argc, wchar_t** argv, void* hWnd)
 {
@@ -10,8 +14,12 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
 
     d3d12Module = new D3D12Module((HWND)hWnd);
     modules.push_back(d3d12Module);
+    //modules.push_back(new Exercise1());
 
     modules.push_back(new ModuleInput((HWND)hWnd)); // we may want to change this in the future
+    resourcesModule = new ModuleResources();
+    modules.push_back(resourcesModule);
+    modules.push_back(new Exercise2());
 }
 
 Application::~Application()

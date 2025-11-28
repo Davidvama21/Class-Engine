@@ -175,6 +175,8 @@
     <ClInclude Include="debug_draw.hpp" />
     <ClInclude Include="EditorModule.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="Exercise1.h" />
+    <ClInclude Include="Exercise2.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GamePad.h" />
     <ClInclude Include="Globals.h" />
@@ -182,6 +184,7 @@
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Module.h" />
     <ClInclude Include="ModuleInput.h" />
+    <ClInclude Include="ModuleResources.h" />
     <ClInclude Include="Mouse.h" />
     <ClInclude Include="PlatformHelpers.h" />
     <ClInclude Include="ReadData.h" />
@@ -258,6 +261,8 @@
     </ClCompile>
     <ClCompile Include="EditorModule.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Exercise1.cpp" />
+    <ClCompile Include="Exercise2.cpp" />
     <ClCompile Include="GamePad.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -273,6 +278,7 @@
     <ClCompile Include="ImGuiPass.cpp" />
     <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="ModuleInput.cpp" />
+    <ClCompile Include="ModuleResources.cpp" />
     <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="SimpleMath.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

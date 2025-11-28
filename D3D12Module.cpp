@@ -1,7 +1,7 @@
 #include "Globals.h"
 #include "Application.h"
+#include "ModuleResources.h"
 #include "D3D12Module.h"
-
 
 D3D12Module::D3D12Module(HWND hwnd): hWnd (hwnd), currentExecution(0)
 {
@@ -10,8 +10,7 @@ D3D12Module::D3D12Module(HWND hwnd): hWnd (hwnd), currentExecution(0)
 D3D12Module::~D3D12Module() // REMEMBER THAT WE HAVE A CLEANUP() FUNCTION!
 {
 	// We wait for the GPU to finish command execution
-	queue->Signal(queueFence.Get(), ++currentExecution); // will be final fence value, done after all GPU execution (++ ensures every other fence value is passed)
-	WaitForFence(currentExecution);
+    flush();
 }
 
 bool D3D12Module::cleanUp()
@@ -268,14 +267,6 @@ void D3D12Module::preRender()
 
 void D3D12Module::render()
 {
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = getRenderTargetDescriptor();
-
-	// Add commands to the list
-
-    commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
-
-	float color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-	commandList->ClearRenderTargetView(getRenderTargetDescriptor(), color, 0, nullptr); // nullptr so that it clears the entire view, not just a rectangle (0 was the number of rectangles)
 	
 }
 
@@ -305,4 +296,11 @@ inline void D3D12Module::WaitForFence(UINT64 value)
 {
 	HRESULT hr = queueFence->SetEventOnCompletion(value, drawEvent);
 	DWORD waitResult = WaitForSingleObject(drawEvent, INFINITE);
+}
+
+// active wait for GPU things to finish (YOU MAY WANT TO CHANGE NAME OF currentExecution)
+inline void D3D12Module::flush() { 
+
+    queue->Signal(queueFence.Get(), ++currentExecution);
+    WaitForFence(currentExecution);
 }

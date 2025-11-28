@@ -8,6 +8,7 @@
 
 class Module;
 class D3D12Module;
+class ModuleResources;
 
 class Application
 {
@@ -29,6 +30,7 @@ public:
     bool                        setPaused(bool p) { paused = p; return paused; }
 
     inline D3D12Module* getD3D12Module() const { return d3d12Module; };
+    inline ModuleResources* getModuleResources() const { return resourcesModule; };
 
 private:
     enum { MAX_FPS_TICKS = 30 };
@@ -37,6 +39,7 @@ private:
     std::vector<Module*> modules;
 	
     D3D12Module* d3d12Module; // TO RECONSIDER
+    ModuleResources* resourcesModule;
 
     uint64_t  lastMilis = 0;
     TickList  tickList;

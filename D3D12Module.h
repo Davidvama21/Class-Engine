@@ -24,6 +24,13 @@ public:
     
     inline ID3D12Device5* getDevice() const { return device.Get(); };
     inline ID3D12GraphicsCommandList4* getCommandList() const { return commandList.Get(); };
+    inline ID3D12CommandQueue* getCommandQueue() const { return queue.Get();  };
+    
+    inline unsigned int getWindowWidth() const { return winWidth; };
+    inline unsigned int getWindowHeight() const { return winHeight; };
+
+
+    inline void flush(); // active wait for GPU things to finish
 
 
 private:
