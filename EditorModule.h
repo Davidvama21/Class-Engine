@@ -9,7 +9,7 @@ public:
 
 	EditorModule(HWND hwnd);
 
-	bool init() override;
+	bool init();
 
 	void update() override;
 
@@ -20,5 +20,5 @@ public:
 private:
 
 	HWND hWnd;
-	ImGuiPass imGUI; // for GUI execution
+	std::unique_ptr<ImGuiPass> imGUI = nullptr; // for GUI execution
 };
