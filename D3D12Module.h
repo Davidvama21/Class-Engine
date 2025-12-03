@@ -25,6 +25,8 @@ public:
     inline ID3D12Device5* getDevice() const { return device.Get(); };
     inline ID3D12GraphicsCommandList4* getCommandList() const { return commandList.Get(); };
     inline ID3D12CommandQueue* getCommandQueue() const { return queue.Get();  };
+    inline ID3D12CommandAllocator* getCommandAllocator() const { return commandAllocators[currentFrameBuffIndex].Get(); };
+    inline ID3D12Resource* getBackBuffer() const { return frameBuffers[currentFrameBuffIndex].Get(); };
     
     inline unsigned int getWindowWidth() const { return winWidth; };
     inline unsigned int getWindowHeight() const { return winHeight; };
@@ -86,6 +88,8 @@ private:
     bool createRenderTargets();
     bool createCommandList();
     bool createDrawFence();
+
+    inline bool getWindowSize(unsigned int& width, unsigned int& height);
 
     inline void WaitForFence(UINT64 value);
 };

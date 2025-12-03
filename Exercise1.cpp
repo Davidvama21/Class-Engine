@@ -10,6 +10,13 @@ void Exercise1::render()
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = d3d12module->getRenderTargetDescriptor();
 	ID3D12GraphicsCommandList4* commandList = d3d12module->getCommandList();
 
+	// Reset command list so that accepts commands AND is associated to the current allocator
+	commandList->Reset(d3d12module->getCommandAllocator(), nullptr);
+
+	// Set frame buffer to render target state so we can add commands (CAN'T BE DONE ON A CLOSED COMMAND LIST!)
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(d3d12module->getBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	commandList->ResourceBarrier(1, &barrier);
+
 	// Add commands to the list
 
 	commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);

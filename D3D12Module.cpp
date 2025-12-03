@@ -27,8 +27,10 @@ bool D3D12Module::init()
 #if defined(_DEBUG)
 	enableDebugLayer();
 #endif
+    
+    bool ok = getWindowSize(winWidth, winHeight);
 
-	bool ok = createFactory();
+    ok = ok && createFactory();
 	ok = ok && createDevice(false);
 
 #if defined(_DEBUG)
@@ -246,6 +248,20 @@ bool D3D12Module::createDrawFence()
     return ok;
 }
 
+inline bool D3D12Module::getWindowSize(unsigned int& width, unsigned int& height)
+{
+    RECT rectangle;
+    if (GetClientRect(hWnd, &rectangle) ) {
+
+        width = rectangle.right - rectangle.left;
+        height = rectangle.bottom - rectangle.top;
+
+        return true;
+    }
+
+    return false;
+}
+
 void D3D12Module::preRender()
 {
 
@@ -256,13 +272,6 @@ void D3D12Module::preRender()
 
     // Empty commands (so that it doesn't fill up with previous data and can be used again; REQUIRES ASSIGNED CLOSED COMMAND LIST)
     commandAllocators[currentFrameBuffIndex]->Reset(); 
-
-    // Reset command list so that accepts commands AND is associated to the current allocator
-    commandList->Reset(commandAllocators[currentFrameBuffIndex].Get(), nullptr);
-
-    // Set frame buffer to render target state so we can add commands (CAN'T BE DONE ON A CLOSED COMMAND LIST!)
-    CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(frameBuffers[currentFrameBuffIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    commandList->ResourceBarrier(1, &barrier);
 }
 
 void D3D12Module::render()
