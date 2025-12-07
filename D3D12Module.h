@@ -21,6 +21,10 @@ public:
     inline D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor() const {
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameBuffIndex, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
     };
+
+    inline D3D12_CPU_DESCRIPTOR_HANDLE getDepthStencilDescriptor() const { // for now because there is a single descriptor
+        return dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    };
     
     inline ID3D12Device5* getDevice() const { return device.Get(); };
     inline ID3D12GraphicsCommandList4* getCommandList() const { return commandList.Get(); };
@@ -67,6 +71,9 @@ private:
 
     ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap; // for passing frame buffers
 
+    ComPtr<ID3D12Resource> depthStencilBuffer; // for now only so that we can add debug drawings (axis, grid)
+    ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap; // (to reference it ^)
+
     // Synchronization //
     ComPtr<ID3D12Fence> queueFence; // will increase value when queue done executing
     UINT64 fenceValues [FRAMES_IN_FLIGHT] = {0}; // one per frame
@@ -86,6 +93,7 @@ private:
     bool createDrawCommandQueue();
     bool createSwapChain();
     bool createRenderTargets();
+    bool createDepthStencil(); // for depth/stencil buffer
     bool createCommandList();
     bool createDrawFence();
 

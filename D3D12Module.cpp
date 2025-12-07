@@ -40,6 +40,7 @@ bool D3D12Module::init()
 
 	ok = ok && createSwapChain();
 	ok = ok && createRenderTargets();
+    ok = ok && createDepthStencil();
 	ok = ok && createCommandList();
 	ok = ok && createDrawFence();
 
@@ -214,6 +215,44 @@ bool D3D12Module::createRenderTargets()
             }
 
             rtvHandle.ptr += rtvDescriptorSize;
+        }
+    }
+
+    return ok;
+}
+
+bool D3D12Module::createDepthStencil()
+{
+    // 1. Create depth/stencil texture
+
+    CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT); // default heap for quick access
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, winWidth, winHeight,
+        1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL); // as a 2d texture that for now will only cover depth values (DXGI_FORMAT_D32_FLOAT), that tackles all the window, and allows creating a depth stencil view
+
+    D3D12_CLEAR_VALUE clearValue = {};
+    clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+    clearValue.DepthStencil.Depth = 1.0f; // corresponds to the far plane in Normalized Device Coordinates
+    clearValue.DepthStencil.Stencil = 0;
+
+    bool ok = SUCCEEDED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue,
+        IID_PPV_ARGS(&depthStencilBuffer)));
+
+    if (ok) {
+        depthStencilBuffer->SetName(L"Depth/Stencil Texture");
+
+        // 2. Create depth/stencil view (DSV)
+        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+        desc.NumDescriptors = 1; // only for the depth/stencil
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+        ok = SUCCEEDED(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&dsvDescriptorHeap)));
+
+        if (ok) {
+            dsvDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
+
+            device->CreateDepthStencilView(depthStencilBuffer.Get(), nullptr, dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart()); // nullptr for a default descriptor set up
         }
     }
 

@@ -4,10 +4,10 @@
 #include "ModuleResources.h"
 #include <ReadData.h>
 
-#include "Exercise2.h"
+#include "Exercise3.h"
 
 
-bool Exercise2::init()
+bool Exercise3::init()
 {
 	if (not uploadVertexData()) return false;
 
@@ -27,9 +27,9 @@ bool Exercise2::init()
 	getCompiledShaders(dataVS, dataPS);
 	psoDesc.VS = { dataVS.data(), dataVS.size() };
 	psoDesc.PS = { dataPS.data(), dataPS.size() };
-	
 
-	// 3. Set vertex shader variables layout
+
+	// 3. Set vertex shader variables layout (on the shader, how they are)
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		{"MY_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	}; // 1st param is our arbitrary name, 2nd is a number to distinguish between vars with the same name, 3r is format, 4th is Input slot (number of buffer), 5th is offset of element inside the buffer
@@ -46,15 +46,24 @@ bool Exercise2::init()
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // Init.
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);		      // with default values
 
+	// DebugDraw-related parameters (depth stencil stuff)
+	psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+
 	// 5. Finally, we create the pipeline object
 	if (FAILED(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject)))) return false;
+
+	setupMVP();
+
+	debugDraw = std::unique_ptr<DebugDrawPass>(new DebugDrawPass(device, d3d12module->getCommandQueue()) );
 
 	return true;
 }
 
-void Exercise2::render()
+void Exercise3::render()
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = d3d12module->getRenderTargetDescriptor();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = d3d12module->getDepthStencilDescriptor();
 	ID3D12GraphicsCommandList4* commandList = d3d12module->getCommandList();
 
 	// Reset command list so that accepts commands AND is associated to the current allocator and pipeline (NOW WE USE THE PIPELINE)
@@ -66,8 +75,7 @@ void Exercise2::render()
 
 
 	// Add commands to the list
-
-	commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+	commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 
 	float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 	commandList->ClearRenderTargetView(rtvHandle, color, 0, nullptr); // nullptr so that it clears the entire view, not just a rectangle (0 was the number of rectangles)
@@ -84,6 +92,9 @@ void Exercise2::render()
 	pView.StrideInBytes = sizeof(Vertex); // stride between elements
 	commandList->IASetVertexBuffers(0, 1, &pView); // 0 for device slot to be bound, 1 for number of vertex buffers <- you may want to ask about this to the teacher
 
+	// Pass the mpv, which will be inserted in the root signature
+	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / sizeof(UINT32), &mvp, 0);
+
 	// Set viewport + scissor
 	unsigned int windowWidth = d3d12module->getWindowWidth();
 	unsigned int windowHeight = d3d12module->getWindowHeight();
@@ -96,10 +107,17 @@ void Exercise2::render()
 	// Drawing
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->DrawInstanced(3, 1, 0, 0); // 3 vertices, 1 instance of them, vertices start at 0 and instances at 0
+
+	// Debug elements (grid, arrows...)
+
+	dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray); // Grid plane
+	dd::axisTriad(ddConvert(Matrix::Identity), 0.1f, 1.0f); // XYZ axis
+
+	debugDraw->record(commandList, windowWidth, windowHeight, view, projection);
 }
 
 
-inline bool Exercise2::uploadVertexData()
+inline bool Exercise3::uploadVertexData()
 {
 	ComPtr<ID3D12Resource> uploadBuffer;
 	ModuleResources* resModule = app->getModuleResources();
@@ -108,23 +126,39 @@ inline bool Exercise2::uploadVertexData()
 	return true;
 }
 
-inline bool Exercise2::createVertexSignature(ID3D12Device5* device)
+inline bool Exercise3::createVertexSignature(ID3D12Device5* device)
 {
-	// Create empty root signature for the vertex shader
-	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-	rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT); // 3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT is because some pipelines do not use it (required for variable passing)
+	// Create root signature with mvp on it for the vertex shader
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
+	CD3DX12_ROOT_PARAMETER rootParameters[1];
+	rootParameters[0].InitAsConstants(sizeof(Matrix) / sizeof(UINT32), 0); // number of 32 bit elements in a matrix (second param is shader register index)
+	rootSignatureDesc.Init(1, rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> blob;
 	if (FAILED(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, nullptr))) // desc serialization (for signature creation)
 		return false;
 
-	if (FAILED(device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&rootSignature)))) return false;
+	if (FAILED(device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&rootSignature))))
+		return false;
 
 	return true;
 }
 
-inline void Exercise2::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<uint8_t>& PS)
+inline void Exercise3::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<uint8_t>& PS)
 {
-	VS = DX::ReadData(L"Exercise2VS.cso");
+	VS = DX::ReadData(L"Exercise3VS.cso");
 	PS = DX::ReadData(L"Exercise2PS.cso");
+}
+
+inline void Exercise3::setupMVP()
+{
+	Matrix model = Matrix::Identity;
+	view = Matrix::CreateLookAt(Vector3(0.0f, 10.0f, 10.0f), Vector3::Zero, Vector3::Up);
+
+	float aspect = float(d3d12module->getWindowWidth()) / float(d3d12module->getWindowHeight());
+	float fov = XM_PIDIV4; // PI/4
+	projection = Matrix::CreatePerspectiveFieldOfView(fov, aspect, 0.1f, 1000.0f);
+
+
+	mvp = (model * view * projection).Transpose(); // transpose because the shader only accepts column-major matrices
 }
