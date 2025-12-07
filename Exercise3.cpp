@@ -75,13 +75,14 @@ void Exercise3::render()
 
 
 	// Add commands to the list
-	commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
+	commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle); // now we have an actual depth stencil, so we have to pass it
 
 	float color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 	commandList->ClearRenderTargetView(rtvHandle, color, 0, nullptr); // nullptr so that it clears the entire view, not just a rectangle (0 was the number of rectangles)
 
-
 	// EXTRA COMMANDS (not seen in exercise 1 (more than painting the background)) //
+
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr); // 1.0 for clear depth value, 0 for clear stencil value, 0 for specified rectangles to clear (if 0 => nullptr for rectangle list) 
 
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
 
