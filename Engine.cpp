@@ -7,6 +7,7 @@
 #include "Engine.h"
 
 #include "Application.h"
+#include "D3D12Module.h"
 
 #include <shellapi.h>
 
@@ -226,6 +227,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         else {
             app->setPaused(false);
+
+            if (wParam == SIZE_MAXIMIZED or wParam == SIZE_RESTORED) // any relevant window resize (RESTORED if for intermediate sizes)
+                app->getD3D12Module()->resize();
         }
         break;
     case WM_SYSKEYDOWN:

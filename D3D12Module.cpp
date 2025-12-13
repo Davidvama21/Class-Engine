@@ -338,6 +338,41 @@ void D3D12Module::postRender()
     fenceValues[currentFrameBuffIndex] = currentExecution; // Store the fence for the dispatched buffer
 }
 
+void D3D12Module::resize()
+{
+    unsigned int width, height;
+    bool ok = getWindowSize(width, height);
+
+    if (ok and (width != winWidth or height != winHeight)) {
+        winWidth = width;
+        winHeight = height;
+
+        if (winWidth > 0 and winHeight > 0) { // Doing something on 0 cases could give issues, + visualization doesn't matter then
+            
+            flush(); // wait so that we can touch the buffers
+            
+            // 1. Clear frame buffer references (since frame sizes will change)
+            for (unsigned i = 0; i < FRAMES_IN_FLIGHT; ++i)
+            {
+                frameBuffers[i].Reset();
+                fenceValues[i] = 0; // so that we don't wait on next render() calls
+            }
+
+            // 2. Resize frame buffers
+            DXGI_SWAP_CHAIN_DESC pDesc;
+            ok = ok and SUCCEEDED(swapChain->GetDesc(&pDesc));
+
+            ok = ok and SUCCEEDED(swapChain->ResizeBuffers(0, winWidth, winHeight, DXGI_FORMAT_UNKNOWN, pDesc.Flags)); // 0 to preserve number of frame buffers, DXGI_FORMAT_UNKNOWN to keep the format
+
+            // 3. Update frame descriptors and references
+            ok = ok and createRenderTargets();
+
+            // 4. Update depth/stencil buffer
+            ok = ok and createDepthStencil();
+        }
+    }
+}
+
 // Auxiliary functions //
 
 inline void D3D12Module::WaitForFence(UINT64 value)

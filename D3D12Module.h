@@ -18,6 +18,8 @@ public:
     void render() override;
     void postRender() override;
 
+    void resize(); // change frames (and depth/stencil buffer!) size
+
     inline D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor() const {
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameBuffIndex, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
     };
@@ -34,7 +36,6 @@ public:
     
     inline unsigned int getWindowWidth() const { return winWidth; };
     inline unsigned int getWindowHeight() const { return winHeight; };
-
 
     inline void flush(); // active wait for GPU things to finish
 
