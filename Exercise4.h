@@ -55,7 +55,10 @@ private:
 	inline bool uploadVertexData(ModuleResources* resModule);
 	inline bool uploadTextureData(ModuleResources* resModule);
 	inline bool createVertexSignature(ID3D12Device5* device);
+	inline bool createPipelineStateObject(ID3D12Device5* device);
+
 	inline void getCompiledShaders(std::vector<uint8_t>& VS, std::vector<uint8_t>& PS);
+
 	inline void setupMVP();
 
 	inline D3D12_VIEWPORT getViewport(unsigned int width, unsigned int height) const

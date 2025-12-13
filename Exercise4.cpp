@@ -23,45 +23,7 @@ bool Exercise4::init()
 
 	if (not createVertexSignature(device)) return false;
 
-	// PIPELINE STATE DECLARATION //
-
-	// 1. Assign signature to pipeline description
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.pRootSignature = rootSignature.Get();
-
-	// 2. Add compiled shaders to pipeline description
-	std::vector<uint8_t> dataVS, dataPS;
-	getCompiledShaders(dataVS, dataPS);
-	psoDesc.VS = { dataVS.data(), dataVS.size() };
-	psoDesc.PS = { dataPS.data(), dataPS.size() };
-
-	// 3. Set vertex shader variables layout (on the shader, how they are)
-	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
-	}; // 1st param is our arbitrary name, 2nd is a number to distinguish between vars with the same name, 3r is format, 4th is Input slot (number of buffer), 5th is offset of element inside the buffer (D3D12_APPEND_ALIGNED_ELEMENT calculates it auto. based on previous variable)
-
-	psoDesc.InputLayout = { inputLayout, sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC) }; // 2n param. is number of variables
-
-	// 4. Remaining pipeline parameters
-	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // mesh topology
-	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of render targets
-	psoDesc.NumRenderTargets = 1;
-	psoDesc.SampleDesc = { 1, 0 };   // For multitasking
-	psoDesc.SampleMask = 0xffffffff; // (to be seen)
-
-	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // Init.
-	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);		      // with default values
-
-	// DebugDraw-related parameters (depth stencil stuff)
-	psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-
-	// 5. Finally, we create the pipeline object
-	if (FAILED(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject)))) return false;
-
-
-	// Remaining stuff
+	if (not createPipelineStateObject(device)) return false;
 
 	samplerModule = app->getModuleSampler();
 
@@ -183,6 +145,46 @@ inline bool Exercise4::createVertexSignature(ID3D12Device5* device)
 
 	if (FAILED(device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&rootSignature)))) // 0 when no multiple GPU operation
 		return false;
+
+	return true;
+}
+
+inline bool Exercise4::createPipelineStateObject(ID3D12Device5* device)
+{
+	// 1. Assign signature to pipeline description
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+	psoDesc.pRootSignature = rootSignature.Get();
+
+	// 2. Add compiled shaders to pipeline description
+	std::vector<uint8_t> dataVS, dataPS;
+	getCompiledShaders(dataVS, dataPS);
+	psoDesc.VS = { dataVS.data(), dataVS.size() };
+	psoDesc.PS = { dataPS.data(), dataPS.size() };
+
+	// 3. Set vertex shader variables layout (on the shader, how they are)
+	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+	}; // 1st param is our arbitrary name, 2nd is a number to distinguish between vars with the same name, 3r is format, 4th is Input slot (number of buffer), 5th is offset of element inside the buffer (D3D12_APPEND_ALIGNED_ELEMENT calculates it auto. based on previous variable)
+
+	psoDesc.InputLayout = { inputLayout, sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC) }; // 2n param. is number of variables
+
+	// 4. Remaining pipeline parameters
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // mesh topology
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of render targets
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.SampleDesc = { 1, 0 };   // For multitasking
+	psoDesc.SampleMask = 0xffffffff; // (to be seen)
+
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // Init.
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);		      // with default values
+
+	// DebugDraw-related parameters (depth stencil stuff)
+	psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+
+	// 5. Finally, we create the pipeline object
+	if (FAILED(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineStateObject)))) return false;
 
 	return true;
 }
