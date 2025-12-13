@@ -9,6 +9,8 @@
 class Module;
 class D3D12Module;
 class ModuleResources;
+class ModuleShaderDescriptors;
+class ModuleSampler;
 
 class Application
 {
@@ -31,6 +33,8 @@ public:
 
     inline D3D12Module* getD3D12Module() const { return d3d12Module; };
     inline ModuleResources* getModuleResources() const { return resourcesModule; };
+    inline ModuleShaderDescriptors* getModuleShaderDesc() const { return shaderDescModule; };
+    inline ModuleSampler* getModuleSampler() const { return samplerModule; };
 
 private:
     enum { MAX_FPS_TICKS = 30 };
@@ -40,6 +44,8 @@ private:
 	
     D3D12Module* d3d12Module; // TO RECONSIDER
     ModuleResources* resourcesModule;
+    ModuleShaderDescriptors* shaderDescModule;
+    ModuleSampler* samplerModule;
 
     uint64_t  lastMilis = 0;
     TickList  tickList;

@@ -4,10 +4,13 @@
 #include "EditorModule.h"
 #include "ModuleResources.h"
 #include "D3D12Module.h"
+#include "ModuleShaderDescriptors.h"
+#include "ModuleSampler.h"
 
 //#include "Exercise1.h"
 //#include "Exercise2.h"
-#include "Exercise3.h"
+//#include "Exercise3.h"
+#include "Exercise4.h"
 
 Application::Application(int argc, wchar_t** argv, void* hWnd)
 {
@@ -20,8 +23,16 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     modules.push_back(new ModuleInput((HWND)hWnd)); // we may want to change this in the future
     resourcesModule = new ModuleResources();
     modules.push_back(resourcesModule);
+
+    shaderDescModule = new ModuleShaderDescriptors();
+    modules.push_back(shaderDescModule);
+
+    samplerModule = new ModuleSampler();
+    modules.push_back(samplerModule);
+
     //modules.push_back(new Exercise2());
-    modules.push_back(new Exercise3());
+    //modules.push_back(new Exercise3());
+    modules.push_back(new Exercise4());
 }
 
 Application::~Application()

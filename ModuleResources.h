@@ -1,7 +1,12 @@
 #pragma once
 
 #include "Module.h"
+
 #include "D3D12Module.h"
+#include <filesystem>
+
+namespace DirectX { class ScratchImage;}
+
 
 class ModuleResources : public Module
 {
@@ -14,10 +19,14 @@ public:
 	// WARNING: numBytes has to be the exact same size of the upload buffer (TO CHANGE?)
 	bool CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBuffer, std::size_t numBytes, ComPtr<ID3D12Resource>& defaultBuffer, const LPCWSTR name);
 
+	bool createTextureFromFile(const std::filesystem::path& path, ComPtr<ID3D12Resource>& texture);
+
 private:
 
 	// Variables for default buffer copying to command
 	ComPtr<ID3D12GraphicsCommandList4> commandList;
 	ComPtr <ID3D12CommandAllocator> commandAllocator; // for the command list
+
+	bool createTextureFromScratchImg(const ScratchImage& image, ComPtr<ID3D12Resource>& texture, const LPCWSTR name);
 };
 
