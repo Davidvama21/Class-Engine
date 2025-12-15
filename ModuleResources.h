@@ -27,6 +27,6 @@ private:
 	ComPtr<ID3D12GraphicsCommandList4> commandList;
 	ComPtr <ID3D12CommandAllocator> commandAllocator; // for the command list
 
-	bool createTextureFromScratchImg(const ScratchImage& image, ComPtr<ID3D12Resource>& texture, const LPCWSTR name);
+	bool createTextureFromScratchImg(ScratchImage& image, ComPtr<ID3D12Resource>& texture, const LPCWSTR name);
 };
 

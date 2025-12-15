@@ -111,14 +111,29 @@ bool ModuleResources::createTextureFromFile(const std::filesystem::path& path, C
     return ok and createTextureFromScratchImg(image, texture, path.c_str());
 }
 
-bool ModuleResources::createTextureFromScratchImg(const ScratchImage& image, ComPtr<ID3D12Resource>& texture, const LPCWSTR name)
+bool ModuleResources::createTextureFromScratchImg(ScratchImage& image, ComPtr<ID3D12Resource>& texture, const LPCWSTR name)
 {
     D3D12Module* d3d12module = app->getD3D12Module();
 
     // 1. Create texture resource in default heap
 
     TexMetadata metaData = image.GetMetadata();
-    // TO DO: Create mipmaps if there aren't any <---
+
+    // If the given image doesn't have mipmaps, we create them
+    if (metaData.mipLevels == 1)
+    {
+        if (FAILED(GenerateMipMaps(
+            *image.GetImage(0, 0, 0), // Base image
+            TEX_FILTER_DEFAULT,
+            0, // 0 = generate full mip chain
+
+            image // replaces current ScratchImage
+        )))
+            return false;
+
+       metaData = image.GetMetadata(); // update metadata with the current one
+    }
+
     D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metaData.format, UINT64(metaData.width), UINT(metaData.height), UINT16(metaData.arraySize), UINT16(metaData.mipLevels));
     CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_DEFAULT);
 
