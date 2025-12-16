@@ -8,6 +8,7 @@
 
 class Module;
 class D3D12Module;
+class EditorModule;
 class ModuleResources;
 class ModuleShaderDescriptors;
 class ModuleSampler;
@@ -32,6 +33,7 @@ public:
     bool                        setPaused(bool p) { paused = p; return paused; }
 
     inline D3D12Module* getD3D12Module() const { return d3d12Module; };
+    inline EditorModule* getEditorModule() const { return editorModule; };
     inline ModuleResources* getModuleResources() const { return resourcesModule; };
     inline ModuleShaderDescriptors* getModuleShaderDesc() const { return shaderDescModule; };
     inline ModuleSampler* getModuleSampler() const { return samplerModule; };
@@ -43,6 +45,7 @@ private:
     std::vector<Module*> modules;
 	
     D3D12Module* d3d12Module; // TO RECONSIDER
+    EditorModule* editorModule;
     ModuleResources* resourcesModule;
     ModuleShaderDescriptors* shaderDescModule;
     ModuleSampler* samplerModule;

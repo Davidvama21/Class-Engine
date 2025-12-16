@@ -34,12 +34,12 @@ private:
 	Matrix projection, view;
 	
 	std::filesystem::path texturePath = L"Assets/Textures/dog.dds";
-	ModuleSampler::Type samplerType = ModuleSampler::Type::LINEAR_WRAP;
 
 	std::unique_ptr <DebugDrawPass> debugDraw; // for grid, object arrows
 
 	// For easy access
-	D3D12Module* d3d12module;
+	D3D12Module* d3d12Module;
+	EditorModule* editorModule;
 	ModuleShaderDescriptors* shaderDescModule; // YOU MAY WANT TO SET THE SIZE FOR THIS OPTIMALLY
 	ModuleSampler* samplerModule;
 

@@ -1,6 +1,7 @@
 #include "Globals.h"
 #include "Application.h"
 #include "D3D12Module.h"
+#include "EditorModule.h"
 #include "ModuleResources.h"
 #include "ModuleShaderDescriptors.h"
 #include "ModuleSampler.h"
@@ -18,33 +19,34 @@ bool Exercise4::init()
 	shaderDescModule = app->getModuleShaderDesc();
 	if (not uploadTextureData(resModule)) return false; // this also sets up the descriptor for it
 
-	d3d12module = app->getD3D12Module();
-	ID3D12Device5* device = d3d12module->getDevice();
+	d3d12Module = app->getD3D12Module();
+	ID3D12Device5* device = d3d12Module->getDevice();
 
 	if (not createVertexSignature(device)) return false;
 
 	if (not createPipelineStateObject(device)) return false;
 
 	samplerModule = app->getModuleSampler();
+	editorModule = app->getEditorModule();
 
 	setupMVP();
 
-	debugDraw = std::unique_ptr<DebugDrawPass>(new DebugDrawPass(device, d3d12module->getCommandQueue()));
+	debugDraw = std::unique_ptr<DebugDrawPass>(new DebugDrawPass(device, d3d12Module->getCommandQueue()));
 
 	return true;
 }
 
 void Exercise4::render()
 {
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = d3d12module->getRenderTargetDescriptor();
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = d3d12module->getDepthStencilDescriptor();
-	ID3D12GraphicsCommandList4* commandList = d3d12module->getCommandList();
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = d3d12Module->getRenderTargetDescriptor();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = d3d12Module->getDepthStencilDescriptor();
+	ID3D12GraphicsCommandList4* commandList = d3d12Module->getCommandList();
 
 	// Reset command list so that accepts commands AND is associated to the current allocator and pipeline (NOW WE USE THE PIPELINE)
-	commandList->Reset(d3d12module->getCommandAllocator(), pipelineStateObject.Get());
+	commandList->Reset(d3d12Module->getCommandAllocator(), pipelineStateObject.Get());
 
 	// Set frame buffer to render target state so we can add commands (CAN'T BE DONE ON A CLOSED COMMAND LIST!)
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(d3d12module->getBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(d3d12Module->getBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	commandList->ResourceBarrier(1, &barrier);
 
 
@@ -75,11 +77,11 @@ void Exercise4::render()
 	commandList->SetDescriptorHeaps(2, descriptorHeaps);
 
 	commandList->SetGraphicsRootDescriptorTable(1, shaderDescModule->GetGPUHandle(textureHeapIndex)); // set texture handle
-	commandList->SetGraphicsRootDescriptorTable(2, samplerModule->GetGPUHandle(samplerType)); // set sampler handle (same idea)
+	commandList->SetGraphicsRootDescriptorTable(2, samplerModule->GetGPUHandle(ModuleSampler::Type(editorModule->samplerType()) )); // set sampler handle (same idea)
 
 	// Set viewport + scissor
-	unsigned int windowWidth = d3d12module->getWindowWidth();
-	unsigned int windowHeight = d3d12module->getWindowHeight();
+	unsigned int windowWidth = d3d12Module->getWindowWidth();
+	unsigned int windowHeight = d3d12Module->getWindowHeight();
 
 	D3D12_VIEWPORT viewport = getViewport(windowWidth, windowHeight);
 	D3D12_RECT scissor = getScissorRect(windowWidth, windowHeight);
@@ -92,8 +94,8 @@ void Exercise4::render()
 
 	// Debug elements (grid, arrows...)
 
-	dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray); // Grid plane
-	dd::axisTriad(ddConvert(Matrix::Identity), 0.1f, 1.0f); // XYZ axis
+	if (editorModule->gridEnabled()) dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray); // Grid plane
+	if (editorModule->objectAxisEnabled()) dd::axisTriad(ddConvert(Matrix::Identity), 0.1f, 1.0f); // XYZ axis
 
 	debugDraw->record(commandList, windowWidth, windowHeight, view, projection);
 }
@@ -200,7 +202,7 @@ inline void Exercise4::setupMVP()
 	Matrix model = Matrix::Identity;
 	view = Matrix::CreateLookAt(Vector3(0.0f, 10.0f, 10.0f), Vector3::Zero, Vector3::Up);
 
-	float aspect = float(d3d12module->getWindowWidth()) / float(d3d12module->getWindowHeight());
+	float aspect = float(d3d12Module->getWindowWidth()) / float(d3d12Module->getWindowHeight());
 	float fov = XM_PIDIV4; // PI/4
 	projection = Matrix::CreatePerspectiveFieldOfView(fov, aspect, 0.1f, 1000.0f);
 

@@ -10,17 +10,20 @@ public:
 	enum Type
 	{
 		LINEAR_WRAP,
+		POINT_WRAP,
+		LINEAR_CLAMP,
+		POINT_CLAMP,
 		MAX_SAMPLERS
 	};
 
 
 	bool init() override;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(Type type) {
+	inline D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(Type type) {
 		return CD3DX12_CPU_DESCRIPTOR_HANDLE(samplerHeap->GetCPUDescriptorHandleForHeapStart(), type,
 			samplerDescriptorSize);
 	}
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(Type type) {
+	inline D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(Type type) {
 		return CD3DX12_GPU_DESCRIPTOR_HANDLE(samplerHeap->GetGPUDescriptorHandleForHeapStart(), type,
 			samplerDescriptorSize);
 	}
