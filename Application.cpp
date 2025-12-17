@@ -3,6 +3,7 @@
 #include "ModuleInput.h"
 #include "EditorModule.h"
 #include "ModuleResources.h"
+#include "ModuleCamera.h"
 #include "D3D12Module.h"
 #include "ModuleShaderDescriptors.h"
 #include "ModuleSampler.h"
@@ -24,6 +25,9 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     modules.push_back(new ModuleInput((HWND)hWnd)); // we may want to change this in the future
     resourcesModule = new ModuleResources();
     modules.push_back(resourcesModule);
+
+    cameraModule = new ModuleCamera();
+    modules.push_back(cameraModule);
 
     shaderDescModule = new ModuleShaderDescriptors();
     modules.push_back(shaderDescModule);

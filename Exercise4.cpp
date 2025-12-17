@@ -3,6 +3,7 @@
 #include "D3D12Module.h"
 #include "EditorModule.h"
 #include "ModuleResources.h"
+#include "ModuleCamera.h"
 #include "ModuleShaderDescriptors.h"
 #include "ModuleSampler.h"
 #include <ReadData.h>
@@ -28,8 +29,7 @@ bool Exercise4::init()
 
 	samplerModule = app->getModuleSampler();
 	editorModule = app->getEditorModule();
-
-	setupMVP();
+	cameraModule = app->getModuleCamera();
 
 	debugDraw = std::unique_ptr<DebugDrawPass>(new DebugDrawPass(device, d3d12Module->getCommandQueue()));
 
@@ -38,6 +38,8 @@ bool Exercise4::init()
 
 void Exercise4::render()
 {
+	setupMVP();
+
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = d3d12Module->getRenderTargetDescriptor();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = d3d12Module->getDepthStencilDescriptor();
 	ID3D12GraphicsCommandList4* commandList = d3d12Module->getCommandList();
@@ -200,12 +202,8 @@ inline void Exercise4::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<
 inline void Exercise4::setupMVP()
 {
 	Matrix model = Matrix::Identity;
-	view = Matrix::CreateLookAt(Vector3(0.0f, 10.0f, 10.0f), Vector3::Zero, Vector3::Up);
-
-	float aspect = float(d3d12Module->getWindowWidth()) / float(d3d12Module->getWindowHeight());
-	float fov = XM_PIDIV4; // PI/4
-	projection = Matrix::CreatePerspectiveFieldOfView(fov, aspect, 0.1f, 1000.0f);
-
+	view = cameraModule->getViewMatrix();
+	projection = cameraModule->getProjectionMatrix();
 
 	mvp = (model * view * projection).Transpose(); // transpose because the shader only accepts column-major matrices
 }
