@@ -33,7 +33,8 @@ private:
 	Matrix mvp; // will contain transformations for vertices
 	Matrix projection, view;
 	
-	std::filesystem::path texturePath = L"Assets/Textures/dog.dds";
+	//std::filesystem::path texturePath = L"Assets/Textures/dog.dds";
+	std::filesystem::path texturePath = L"Assets/Textures/cracked_ground.jpg";
 
 	std::unique_ptr <DebugDrawPass> debugDraw; // for grid, object arrows
 

@@ -115,24 +115,90 @@ bool ModuleResources::createTextureFromScratchImg(ScratchImage& image, ComPtr<ID
 {
     D3D12Module* d3d12module = app->getD3D12Module();
 
-    // 1. Create texture resource in default heap
-
     TexMetadata metaData = image.GetMetadata();
 
     // If the given image doesn't have mipmaps, we create them
     if (metaData.mipLevels == 1)
     {
+        ScratchImage imageWithMips;
+
         if (FAILED(GenerateMipMaps(
             *image.GetImage(0, 0, 0), // Base image
             TEX_FILTER_DEFAULT,
             0, // 0 = generate full mip chain
 
-            image // replaces current ScratchImage
+            imageWithMips
         )))
             return false;
 
-       metaData = image.GetMetadata(); // update metadata with the current one
+       TexMetadata metaDataWithMips = imageWithMips.GetMetadata();
+
+       // (we continue with the new image and metadata with mipmaps) <- PROBABLY YOU WILL WANT TO CHANGE SO THAT ONLY THE DIFFERENT PART IS DONE INSIDE THE IF
+
+       // 1. Create texture resource in default heap
+
+       D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metaDataWithMips.format, UINT64(metaDataWithMips.width), UINT(metaDataWithMips.height), UINT16(metaDataWithMips.arraySize), UINT16(metaDataWithMips.mipLevels));
+       CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_DEFAULT);
+
+       ID3D12Device5* device = d3d12module->getDevice();
+       if (FAILED(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &textureDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&texture))))
+           return false;
+
+       texture->SetName(name);
+       // 2. Create intermediate (staging) buffer to copy data to GPU
+
+       UINT64 size = GetRequiredIntermediateSize(texture.Get(), 0, imageWithMips.GetImageCount());
+       CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+       CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(size);
+
+       ComPtr<ID3D12Resource> intermediateBuf;
+       if (FAILED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&intermediateBuf))))
+           return false;
+
+       // 3. Copy the data to the texture (in GPU)
+
+       // 1) Set up command list
+       if (FAILED(commandAllocator->Reset())) return false; // empty previous commands so that it doesn't fill up
+       if (FAILED(commandList->Reset(commandAllocator.Get(), nullptr))) return false;
+
+       // 2) Get texture subresource data and copy
+       std::vector<D3D12_SUBRESOURCE_DATA> subData;
+       subData.reserve(imageWithMips.GetImageCount());
+
+       // (Note we are iterating over mipLevels of each array item to respect Subresource index order)
+       for (size_t item = 0; item < metaDataWithMips.arraySize; ++item)
+       {
+           for (size_t level = 0; level < metaDataWithMips.mipLevels; ++level)
+           {
+               const DirectX::Image* subImg = imageWithMips.GetImage(level, item, 0);
+               D3D12_SUBRESOURCE_DATA data = { subImg->pixels, subImg->rowPitch, subImg->slicePitch };
+               subData.push_back(data);
+           }
+       }
+
+       UpdateSubresources(commandList.Get(), texture.Get(), intermediateBuf.Get(), 0, 0, UINT(imageWithMips.GetImageCount()), subData.data());
+
+       // 4. Transition the texture to RESOURCE_STATE_PIXEL_SHADER_RESOURCE so that it can be used (WE ASUME COMMANDLIST OPENED AFTER UPDATESUBRESOURCES)
+
+       CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+       commandList->ResourceBarrier(1, &barrier);
+
+       // 5. Execute the command list
+       commandList->Close();
+
+       ID3D12CommandList* listsToExecute[] = { commandList.Get() };
+       ID3D12CommandQueue* queue = d3d12module->getCommandQueue();
+       queue->ExecuteCommandLists(UINT(std::size(listsToExecute)), listsToExecute);
+
+       // And we do a flush to ensure all operations finished
+       d3d12module->flush();
+
+       return true;
     }
+    
+    // (steps with the original image, since it had the mipmaps)
+
+    // 1. Create texture resource in default heap
 
     D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metaData.format, UINT64(metaData.width), UINT(metaData.height), UINT16(metaData.arraySize), UINT16(metaData.mipLevels));
     CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_DEFAULT);
