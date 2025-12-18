@@ -48,7 +48,7 @@ void EditorModule::showExercise4Window()
 	ImGui::Text("FPS: %f", app->getFPS());
 	ImGui::Checkbox("Show grid", &showGrid);
 	ImGui::Checkbox("Show axis", &showAxis);
-	ImGui::Combo("Sampler", &usedSampler, "Linear/Wrap\0Point/Wrap\0Linear/Clamp\0Point/Clamp", ModuleSampler::MAX_SAMPLERS);
+	ImGui::Combo("Sampler", &usedSampler, "Linear/Wrap\0Point/Wrap\0Linear/Clamp\0Point/Clamp\0", ModuleSampler::MAX_SAMPLERS);
 
 	ImGui::End();
 }
