@@ -90,7 +90,7 @@ void ImGuiPass::startFrame()
     ImGui::NewFrame();
 
     // imgui commands
-    ImGui::ShowDemoWindow(); // WE LEAVE IT FOR NOW
+    //ImGui::ShowDemoWindow();
 }
 
 void ImGuiPass::record(ID3D12GraphicsCommandList* commandList)

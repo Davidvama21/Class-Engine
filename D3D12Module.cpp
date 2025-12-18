@@ -336,6 +336,8 @@ void D3D12Module::postRender()
 
     queue->Signal(queueFence.Get(), ++currentExecution); // new fence value from the GPU side (not done until queue finishes previous commands)
     fenceValues[currentFrameBuffIndex] = currentExecution; // Store the fence for the dispatched buffer
+
+    flush();
 }
 
 void D3D12Module::resize()
