@@ -2,7 +2,6 @@
 
 #include "Application.h"
 #include "D3D12Module.h"
-#include "Mouse.h"
 #include "Keyboard.h"
 
 #include "ModuleCamera.h"
@@ -10,8 +9,8 @@
 bool ModuleCamera::init()
 {
     // Camera params.
-    position = resetPosition = Vector3(0.0f, 10.0f, 10.0f);
-    target = Vector3::Zero;
+    position = Vector3(0.0f, 10.0f, 10.0f);
+    target = objectPosition = Vector3::Zero;
     up = Vector3::Up;
 
     d3d12Module = app->getD3D12Module();
@@ -27,7 +26,10 @@ bool ModuleCamera::init()
     view = Matrix::CreateLookAt(position, target, up);
     projection = Matrix::CreatePerspectiveFieldOfView(fov, aspectRatio, zNear, zFar);
 
-    lastWheelValue = Mouse::Get().GetState().scrollWheelValue;
+    const Mouse::State& mouseState = Mouse::Get().GetState();
+    lastWheelValue = mouseState.scrollWheelValue;
+    lastXMousePos = mouseState.x;
+    lastYMousePos = mouseState.y;
 
     return true;
 }
@@ -52,15 +54,65 @@ void ModuleCamera::update()
     else speed = movementSpeed;
 
     // Actions //
-    if (keyState.F) { // Reset position
+    if (keyState.F) { // Reset to object's position
         
-        position = resetPosition;
+        position = objectPosition - currentForward*10*sqrt(2); // 10*sqrt(2) = sqrt(200) is the module of the distance to the object at the beginning (on init())
     
     }else if ((keyState.LeftAlt or keyState.RightAlt) and mouseState.leftButton) // Orbit object
     {
-        // ....
+        int deltaMouseX, deltaMouseY;
+        getMouseDeltas(deltaMouseX, deltaMouseY, mouseState);
+
+        if (deltaMouseX != 0 or deltaMouseY != 0) {
+        
+            // 1. Obtain new camera position (altering position-objectPosition vector)
+            Vector3 rotation;
+            rotation.x = -deltaMouseY * speed * elapsedSec; // negative, because we want to rotate in the opposite direction (this is the pitch)
+            rotation.z = 0;
+            rotation.y = -deltaMouseX * speed * elapsedSec;
+
+            Quaternion rotationQuat = Quaternion::CreateFromYawPitchRoll(rotation);
+            Vector3 objectToCam = position - objectPosition;
+            objectToCam = Vector3::Transform(objectToCam, rotationQuat); // now it leads to the new camera position
+
+            position = objectPosition + objectToCam;
+            
+            // 2. Update current forward
+            currentForward = XMVector3Normalize(-objectToCam);
+
+            /*
+            // 3. Calculate new up, based on ideal visualization 
+            Quaternion upwardRot(XMConvertToRadians(-90), 0, 0, 1);
+            up = Vector3::Transform(up, upwardRot);
+            */
+        }
+       
     }
     else if (mouseState.rightButton) { // Movement
+
+        // Look around (mouse)
+        int deltaMouseX, deltaMouseY;
+        getMouseDeltas(deltaMouseX, deltaMouseY, mouseState);
+
+        if (deltaMouseX != 0 or deltaMouseY != 0) {
+
+            Vector3 rotation;
+            rotation.x = -deltaMouseY * speed * elapsedSec; // negative, because we want to rotate in the opposite direction (this is the pitch)
+            rotation.z = 0; 
+            rotation.y = -deltaMouseX * speed * elapsedSec;
+            
+            Quaternion rotationQuat = Quaternion::CreateFromYawPitchRoll(rotation);
+
+            currentForward = Vector3::Transform(currentForward, rotationQuat);
+            //currentForward = XMVector3Normalize(currentForward);
+
+            //up = Vector3::Transform(up, rotationQuat); // TO REVISE
+            //up = XMVector3Normalize(up);
+
+            // (Before continuing, we should ensure that up is not too tilted)
+
+            currentRight = XMVector3Normalize(XMVector3Cross(currentForward, up)); // recalculate because it has changed
+        }
 
         // Forward, backwards
         if (keyState.W)
@@ -74,6 +126,11 @@ void ModuleCamera::update()
         else if (keyState.A)
             position -= currentRight * speed * elapsedSec;
 
+        // Up, down
+        if (keyState.Q)
+            position += up * speed * elapsedSec;
+        else if (keyState.E)
+            position -= up * speed * elapsedSec;
     }
     
     // Wheel zoom (we allow it always to happen; to change?)
@@ -81,10 +138,19 @@ void ModuleCamera::update()
     if (change != 0)
         position += currentForward * float(change) * elapsedSec;
 
-    lastWheelValue = mouseState.scrollWheelValue; // we update the value
-
+    // We update saved mouse values
+    lastWheelValue = mouseState.scrollWheelValue;
+    lastXMousePos = mouseState.x;
+    lastYMousePos = mouseState.y;
 
 
     target = position + currentForward;
     view = Matrix::CreateLookAt(position, target, up);
+}
+
+inline void ModuleCamera::getMouseDeltas(int& xPos, int& yPos, const Mouse::State& mouseState) {
+
+    // For now, we will go for the simplest implementation
+    xPos = mouseState.x - lastXMousePos;
+    yPos = mouseState.y - lastYMousePos;
 }
