@@ -2,23 +2,15 @@
 #include "Application.h"
 #include "D3D12Module.h"
 #include "EditorModule.h"
-#include "ModuleResources.h"
 #include "ModuleCamera.h"
-#include "ModuleShaderDescriptors.h"
 #include "ModuleSampler.h"
 #include <ReadData.h>
 
-#include "Exercise4.h"
+#include "Exercise5.h"
 
-
-bool Exercise4::init()
+bool Exercise5::init()
 {
-	ModuleResources* resModule = app->getModuleResources();
-
-	if (not uploadVertexData(resModule)) return false;
-
-	shaderDescModule = app->getModuleShaderDesc();
-	if (not uploadTextureData(resModule)) return false; // this also sets up the descriptor for it
+	if (not model.load(modelPath, modelFolder)) return false;
 
 	d3d12Module = app->getD3D12Module();
 	ID3D12Device5* device = d3d12Module->getDevice();
@@ -36,7 +28,7 @@ bool Exercise4::init()
 	return true;
 }
 
-void Exercise4::render()
+void Exercise5::render()
 {
 	setupMVP();
 
@@ -64,22 +56,23 @@ void Exercise4::render()
 
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
 
+	/*
 	// Set vertex buffer for rendering
 	D3D12_VERTEX_BUFFER_VIEW pView; // for vertex buffer details
 	pView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
 	pView.SizeInBytes = sizeof(vertices);
 	pView.StrideInBytes = sizeof(Vertex); // stride between elements
 	commandList->IASetVertexBuffers(0, 1, &pView); // 0 for device slot to be bound, 1 for number of vertex buffers <- you may want to ask about this to the teacher
-
+*/
 	// Pass the mpv, which will be inserted in the root signature
-	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / sizeof(UINT32), &mvp, 0);
+	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / sizeof(UINT32), &mvp, 0); // first 0 because parameter 0
 
 	// Pass texture and sampler (requires assigning their descriptor heaps)
-	ID3D12DescriptorHeap* descriptorHeaps[] = { shaderDescModule->getHeap(), samplerModule->getHeap() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { model.getHeap(), samplerModule->getHeap() };
 	commandList->SetDescriptorHeaps(2, descriptorHeaps);
 
-	commandList->SetGraphicsRootDescriptorTable(1, shaderDescModule->GetGPUHandle(textureHeapIndex)); // set texture handle
-	commandList->SetGraphicsRootDescriptorTable(2, samplerModule->GetGPUHandle(ModuleSampler::Type(editorModule->samplerType()) )); // set sampler handle (same idea)
+	//commandList->SetGraphicsRootDescriptorTable(1, shaderDescModule->GetGPUHandle(textureHeapIndex)); // set texture handle
+	commandList->SetGraphicsRootDescriptorTable(3, samplerModule->GetGPUHandle(ModuleSampler::Type(editorModule->samplerType()))); // set sampler handle
 
 	// Set viewport + scissor
 	unsigned int windowWidth = d3d12Module->getWindowWidth();
@@ -92,7 +85,21 @@ void Exercise4::render()
 
 	// Drawing
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList->DrawInstanced(6, 1, 0, 0); // 6 vertices, 1 instance of them, vertices start at 0 and instances at 0
+
+	BEGIN_EVENT(commandList, "Model Render Pass");
+
+	for (const Mesh& mesh : model.getMeshes())
+	{
+		const BasicMaterial& material = model.getMaterials()[mesh.getMaterialIndex()];
+		commandList->SetGraphicsRootConstantBufferView(1, material.getMatGPUVirtualAddress()); // set cbuffer handle (from the material used by the mesh)
+		commandList->SetGraphicsRootDescriptorTable(2, material.getGPUHandle(model.getDescTable()) ); // set texture handle (same)
+
+		mesh.draw(commandList);
+	}
+
+	END_EVENT(commandList);
+
+	//commandList->DrawInstanced(6, 1, 0, 0); // 6 vertices, 1 instance of them, vertices start at 0 and instances at 0
 
 	// Debug elements (grid, arrows...)
 
@@ -103,43 +110,28 @@ void Exercise4::render()
 }
 
 
-inline bool Exercise4::uploadVertexData(ModuleResources* resModule)
-{
-	ComPtr<ID3D12Resource> uploadBuffer;
-	if (not resModule->CreateUploadBuffer(vertices, sizeof(vertices), uploadBuffer, "Vertex upload buffer")) return false;
-	if (not resModule->CreateDefaultBuffer(uploadBuffer, sizeof(vertices), vertexBuffer, "Vertex default buffer")) return false; // (on the GPU)
-	return true;
-}
-
-inline bool Exercise4::uploadTextureData(ModuleResources* resModule)
-{
-	if (not resModule->createTextureFromFile(texturePath, texture) ) return false;
-
-	// Now, we assign a descriptor for the texture
-	textureHeapIndex = shaderDescModule->CreateSRV(texture);
-
-	return (textureHeapIndex < SHADER_DESCRIPTORS); // if == , was the mark for heap being full
-}
-
-inline bool Exercise4::createVertexSignature(ID3D12Device5* device)
+inline bool Exercise5::createVertexSignature(ID3D12Device5* device)
 {
 	// Create root signature with mvp + texture + sampler object on it for the vertex shader
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	CD3DX12_ROOT_PARAMETER rootParameters[3] = {};
-	
+	CD3DX12_ROOT_PARAMETER rootParameters[4] = {};
+
 	// mvp //
 	rootParameters[0].InitAsConstants(sizeof(Matrix) / sizeof(UINT32), 0); // number of 32 bit elements in a matrix (second param is shader register index)
-	
+
+	// cbuffer //
+	rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // (shader register 1)
+
 	// texture //
 	CD3DX12_DESCRIPTOR_RANGE tableRange;
 	tableRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0); // 1 range of 1 SRV descriptor, on register 0
-	rootParameters[1].InitAsDescriptorTable(1, &tableRange, D3D12_SHADER_VISIBILITY_PIXEL); // The descriptor table (1 range, specified by tableRange, visible on pixel shader)
-	
+	rootParameters[2].InitAsDescriptorTable(1, &tableRange, D3D12_SHADER_VISIBILITY_PIXEL); // The descriptor table (1 range, specified by tableRange, visible on pixel shader)
+
 	// sampler //
 	CD3DX12_DESCRIPTOR_RANGE sampRange;
 	sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, ModuleSampler::Type::MAX_SAMPLERS, 0);
-	rootParameters[2].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[3].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	rootSignatureDesc.Init(UINT(std::size(rootParameters)), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT); // 0 for no static samplers (=> nullptr afterwards for sampler list)
 
@@ -153,7 +145,7 @@ inline bool Exercise4::createVertexSignature(ID3D12Device5* device)
 	return true;
 }
 
-inline bool Exercise4::createPipelineStateObject(ID3D12Device5* device)
+inline bool Exercise5::createPipelineStateObject(ID3D12Device5* device)
 {
 	// 1. Assign signature to pipeline description
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -180,8 +172,9 @@ inline bool Exercise4::createPipelineStateObject(ID3D12Device5* device)
 	psoDesc.SampleDesc = { 1, 0 };   // For multitasking
 	psoDesc.SampleMask = 0xffffffff; // (to be seen)
 
-	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // Init.
-	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);		      // with default values
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.RasterizerState.FrontCounterClockwise = true; // because that's the vertex order for our glTF faces
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
 	// DebugDraw-related parameters (depth stencil stuff)
 	psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
@@ -193,15 +186,15 @@ inline bool Exercise4::createPipelineStateObject(ID3D12Device5* device)
 	return true;
 }
 
-inline void Exercise4::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<uint8_t>& PS)
+inline void Exercise5::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<uint8_t>& PS)
 {
 	VS = DX::ReadData(L"Exercise4VS.cso");
-	PS = DX::ReadData(L"Exercise4PS.cso");
+	PS = DX::ReadData(L"Exercise5PS.cso");
 }
 
-inline void Exercise4::setupMVP()
+inline void Exercise5::setupMVP()
 {
-	Matrix model = Matrix::Identity;
+	Matrix model = Matrix::CreateScale(modelScale, modelScale, modelScale);
 	view = cameraModule->getViewMatrix();
 	projection = cameraModule->getProjectionMatrix();
 

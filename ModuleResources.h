@@ -14,10 +14,10 @@ public:
 
 	bool init();
 
-	bool CreateUploadBuffer(const void* buffer, std::size_t numBytes, ComPtr<ID3D12Resource>& uploadBuffer, const LPCWSTR name);
+	bool CreateUploadBuffer(const void* buffer, std::size_t numBytes, ComPtr<ID3D12Resource>& uploadBuffer, const char* name);
 
 	// WARNING: numBytes has to be the exact same size of the upload buffer (TO CHANGE?)
-	bool CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBuffer, std::size_t numBytes, ComPtr<ID3D12Resource>& defaultBuffer, const LPCWSTR name);
+	bool CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBuffer, std::size_t numBytes, ComPtr<ID3D12Resource>& defaultBuffer, const char* name);
 
 	bool createTextureFromFile(const std::filesystem::path& path, ComPtr<ID3D12Resource>& texture);
 

@@ -21,7 +21,7 @@ bool ModuleResources::init() {
     return ok;
 }
 
-bool ModuleResources::CreateUploadBuffer(const void* buffer, std::size_t numBytes, ComPtr<ID3D12Resource>& uploadBuffer, const LPCWSTR name)
+bool ModuleResources::CreateUploadBuffer(const void* buffer, std::size_t numBytes, ComPtr<ID3D12Resource>& uploadBuffer, const char* name)
 {
     bool ok;
 
@@ -36,7 +36,8 @@ bool ModuleResources::CreateUploadBuffer(const void* buffer, std::size_t numByte
     ok = SUCCEEDED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer)) );
 
     if (ok){
-        uploadBuffer->SetName(name);
+        std::wstring convertStr(name, name + strlen(name));
+        uploadBuffer->SetName(convertStr.c_str());
 
         // 4. Map the buffer: get a CPU pointer to its memory
         BYTE* pData = nullptr;
@@ -55,7 +56,7 @@ bool ModuleResources::CreateUploadBuffer(const void* buffer, std::size_t numByte
     return ok;
 }
 
-bool ModuleResources::CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBuffer, std::size_t numBytes, ComPtr<ID3D12Resource>& defaultBuffer, const LPCWSTR name)
+bool ModuleResources::CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBuffer, std::size_t numBytes, ComPtr<ID3D12Resource>& defaultBuffer, const char* name)
 {
     bool ok;
 
@@ -69,7 +70,8 @@ bool ModuleResources::CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBu
     ok = SUCCEEDED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&defaultBuffer)) );
 
     if (ok) {
-        defaultBuffer->SetName(name);
+        std::wstring convertStr(name, name + strlen(name));
+        defaultBuffer->SetName(convertStr.c_str());
 
         // 2. SEND COPY COMMAND FROM UPLOAD TO DEFAULT
 

@@ -122,8 +122,8 @@ inline bool Exercise3::uploadVertexData()
 {
 	ComPtr<ID3D12Resource> uploadBuffer;
 	ModuleResources* resModule = app->getModuleResources();
-	if (not resModule->CreateUploadBuffer(vertices, sizeof(vertices), uploadBuffer, L"Vertex upload buffer")) return false;
-	if (not resModule->CreateDefaultBuffer(uploadBuffer, sizeof(vertices), vertexBuffer, L"Vertex default buffer")) return false; // (on the GPU)
+	if (not resModule->CreateUploadBuffer(vertices, sizeof(vertices), uploadBuffer, "Vertex upload buffer")) return false;
+	if (not resModule->CreateDefaultBuffer(uploadBuffer, sizeof(vertices), vertexBuffer, "Vertex default buffer")) return false; // (on the GPU)
 	return true;
 }
 
