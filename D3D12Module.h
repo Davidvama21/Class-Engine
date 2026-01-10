@@ -20,22 +20,24 @@ public:
 
     void resize(); // change frames (and depth/stencil buffer!) size
 
-    inline D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor() const {
+    D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor() const {
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), currentFrameBuffIndex, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
     };
 
-    inline D3D12_CPU_DESCRIPTOR_HANDLE getDepthStencilDescriptor() const { // for now because there is a single descriptor
+    D3D12_CPU_DESCRIPTOR_HANDLE getDepthStencilDescriptor() const { // for now because there is a single descriptor
         return dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     };
     
-    inline ID3D12Device5* getDevice() const { return device.Get(); };
-    inline ID3D12GraphicsCommandList4* getCommandList() const { return commandList.Get(); };
-    inline ID3D12CommandQueue* getCommandQueue() const { return queue.Get();  };
-    inline ID3D12CommandAllocator* getCommandAllocator() const { return commandAllocators[currentFrameBuffIndex].Get(); };
-    inline ID3D12Resource* getBackBuffer() const { return frameBuffers[currentFrameBuffIndex].Get(); };
+    ID3D12Device5* getDevice() const { return device.Get(); };
+    ID3D12GraphicsCommandList4* getCommandList() const { return commandList.Get(); };
+    ID3D12CommandQueue* getCommandQueue() const { return queue.Get();  };
+    ID3D12CommandAllocator* getCommandAllocator() const { return commandAllocators[currentFrameBuffIndex].Get(); };
+    ID3D12Resource* getBackBuffer() const { return frameBuffers[currentFrameBuffIndex].Get(); };
+    unsigned int getBackBufferIndex() const { return currentFrameBuffIndex; };
+
     
-    inline unsigned int getWindowWidth() const { return winWidth; };
-    inline unsigned int getWindowHeight() const { return winHeight; };
+    unsigned int getWindowWidth() const { return winWidth; };
+    unsigned int getWindowHeight() const { return winHeight; };
 
     inline void flush(); // active wait for GPU things to finish
 

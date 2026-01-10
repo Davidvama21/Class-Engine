@@ -12,6 +12,7 @@ struct Vertex
 {
 	Vector3 position;
 	Vector2 texCoord0; // texture coordinates
+	Vector3 normal; // normal of the vertex
 };
 
 class Mesh

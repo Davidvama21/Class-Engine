@@ -25,6 +25,10 @@ bool Mesh::load(const tinygltf::Model& model, const tinygltf::Mesh& mesh, const 
 			numVertices, model, primitive.attributes, "TEXCOORD_0")) // load texture coordinate
 			return false;
 
+		if (not loadAccessorData(vertexData + offsetof(Vertex, normal), sizeof(Vector3), sizeof(Vertex),
+			numVertices, model, primitive.attributes, "NORMAL"))
+			return false;
+
 		// Copy Vertex data to default buffer
 		uint32_t verticesSize = numVertices * sizeof(Vertex); 
 		{

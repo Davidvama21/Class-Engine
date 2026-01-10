@@ -34,6 +34,7 @@ void log(const char file[], int line, const char* format, ...);
 
 #define FRAMES_IN_FLIGHT 3
 #define SHADER_DESCRIPTORS 4
+#define RING_BUFFER_SIZE 10 * (1 << 20) // 10 MB
 
 #include "debug_draw.hpp"
 inline const ddVec3& ddConvert(const Vector3& v) { return reinterpret_cast<const ddVec3&>(v); }

@@ -9,7 +9,7 @@
 
 #include "Model.h"
 
-bool Model::load(const std::string& assetFileName, const std::string& assetFolder)
+bool Model::load(const std::string& assetFileName, const std::string& assetFolder, BasicMaterial::Type materialType)
 {
 	tinygltf::TinyGLTF gltfContext;
 	tinygltf::Model model;
@@ -47,7 +47,7 @@ bool Model::load(const std::string& assetFileName, const std::string& assetFolde
 
 		for (unsigned int i = 0; i < model.materials.size(); ++i) {
 			BasicMaterial material;
-			if (not material.load(model, model.materials[i], descTable, assetFolder))
+			if (not material.load(model, model.materials[i], descTable, assetFolder, materialType))
 				return false;
 			materials.push_back(material);
 		}

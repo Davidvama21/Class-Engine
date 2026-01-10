@@ -13,6 +13,7 @@ class ModuleResources;
 class ModuleCamera;
 class ModuleShaderDescriptors;
 class ModuleSampler;
+class ModuleRingBuffer;
 
 class Application
 {
@@ -33,12 +34,13 @@ public:
     bool                        isPaused() const { return paused; }
     bool                        setPaused(bool p) { paused = p; return paused; }
 
-    inline D3D12Module* getD3D12Module() const { return d3d12Module; };
-    inline EditorModule* getEditorModule() const { return editorModule; };
-    inline ModuleResources* getModuleResources() const { return resourcesModule; };
-    inline ModuleCamera* getModuleCamera() const { return cameraModule; };
-    inline ModuleShaderDescriptors* getModuleShaderDesc() const { return shaderDescModule; };
-    inline ModuleSampler* getModuleSampler() const { return samplerModule; };
+    D3D12Module* getD3D12Module() const { return d3d12Module; };
+    EditorModule* getEditorModule() const { return editorModule; };
+    ModuleResources* getModuleResources() const { return resourcesModule; };
+    ModuleCamera* getModuleCamera() const { return cameraModule; };
+    ModuleShaderDescriptors* getModuleShaderDesc() const { return shaderDescModule; };
+    ModuleSampler* getModuleSampler() const { return samplerModule; };
+    ModuleRingBuffer* getModuleRingBuffer() const { return ringBufferModule; };
 
 private:
     enum { MAX_FPS_TICKS = 30 };
@@ -52,6 +54,7 @@ private:
     ModuleCamera* cameraModule;
     ModuleShaderDescriptors* shaderDescModule;
     ModuleSampler* samplerModule;
+    ModuleRingBuffer* ringBufferModule;
 
     uint64_t  lastMilis = 0;
     TickList  tickList;

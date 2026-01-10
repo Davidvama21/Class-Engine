@@ -2,18 +2,16 @@
 #include "Application.h"
 #include "D3D12Module.h"
 #include "EditorModule.h"
-#include "ModuleResources.h"
 #include "ModuleCamera.h"
 #include "ModuleSampler.h"
+#include "ModuleRingBuffer.h"
 #include <ReadData.h>
 
-#include "Exercise5.h"
+#include "Exercise6.h"
 
-bool Exercise5::init()
+bool Exercise6::init()
 {
-	ModuleResources* resourcesModule = app->getModuleResources();
-
-	if (not loadModelData(resourcesModule)) return false;
+	if (not loadModelData()) return false;
 
 	d3d12Module = app->getD3D12Module();
 	ID3D12Device5* device = d3d12Module->getDevice();
@@ -25,15 +23,17 @@ bool Exercise5::init()
 	samplerModule = app->getModuleSampler();
 	editorModule = app->getEditorModule();
 	cameraModule = app->getModuleCamera();
+	ringBufferModule = app->getModuleRingBuffer();
 
 	debugDraw = std::unique_ptr<DebugDrawPass>(new DebugDrawPass(device, d3d12Module->getCommandQueue()));
 
 	return true;
 }
 
-void Exercise5::render()
+void Exercise6::render()
 {
 	setupMVP();
+	setupLighting();
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = d3d12Module->getRenderTargetDescriptor();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = d3d12Module->getDepthStencilDescriptor();
@@ -60,13 +60,16 @@ void Exercise5::render()
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
 
 	// Pass the mpv, which will be inserted in the root signature
-	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / sizeof(UINT32), &mvp, 0); // first 0 because parameter 0
+	commandList->SetGraphicsRoot32BitConstants(0, sizeof(XMMATRIX) / sizeof(UINT32), &mvp, 0); // first 0 because root parameter 0
 
 	// Assign descriptor heaps for textures and samplers
 	ID3D12DescriptorHeap* descriptorHeaps[] = { model.getHeap(), samplerModule->getHeap() };
 	commandList->SetDescriptorHeaps(2, descriptorHeaps);
 
-	commandList->SetGraphicsRootDescriptorTable(3, samplerModule->GetGPUHandle(ModuleSampler::Type(editorModule->samplerType()))); // set sampler handle (REMEMBER THAT THE NUMBER IS THE ROOT SIGNATURE POSITION!)
+	commandList->SetGraphicsRootDescriptorTable(4, samplerModule->GetGPUHandle(ModuleSampler::LINEAR_WRAP)); // set sampler handle
+	
+	// Pass the perFrame buffer (via ring buffer address)
+	commandList->SetGraphicsRootConstantBufferView(1, ringBufferModule->allocBuffer(&lightingData, sizeof(PerFrame)) );
 
 	// Set viewport + scissor
 	unsigned int windowWidth = d3d12Module->getWindowWidth();
@@ -85,11 +88,15 @@ void Exercise5::render()
 	for (const Mesh& mesh : model.getMeshes())
 	{
 		const BasicMaterial& material = model.getMaterials()[mesh.getMaterialIndex()];
-		commandList->SetGraphicsRootConstantBufferView(1, materialBuffers[mesh.getMaterialIndex()]->GetGPUVirtualAddress() ); // set cbuffer handle (from the material used by the mesh)
-		commandList->SetGraphicsRootDescriptorTable(2, material.getGPUHandle(model.getDescTable()) ); // set texture handle (same)
+
+		PerInstance matData = { model.getModelMatrix().Transpose(), model.getNormalMatrix().Transpose(), material.getPhongData()};
+		commandList->SetGraphicsRootConstantBufferView(2, ringBufferModule->allocBuffer(&matData, sizeof(PerInstance))); // Pass the perInstance buffer (via ring buffer address)
+
+		commandList->SetGraphicsRootDescriptorTable(3, material.getGPUHandle(model.getDescTable())); // set texture handle (same)
 
 		mesh.draw(commandList);
 	}
+
 
 	END_EVENT(commandList);
 
@@ -102,50 +109,40 @@ void Exercise5::render()
 }
 
 
-inline bool Exercise5::loadModelData(ModuleResources* resourcesModule)
+inline bool Exercise6::loadModelData()
 {
-	if (not model.load(modelPath, modelFolder)) return false;
+	if (not model.load(modelPath, modelFolder, BasicMaterial::PHONG)) return false;
 
-	// Upload material data
-	materialBuffers.reserve(model.getNumMaterials());
-	for (int i = 0, count = model.getNumMaterials(); i < count; ++i) {
+	model.setModelMatrix(Matrix::CreateScale(modelScale, modelScale, modelScale));
 
-		const BasicMaterial& material = model.getMaterials()[i];
-		BasicMaterialData data = material.getBasicData();
-		
-		ComPtr<ID3D12Resource> uploadBuffer;
-		ComPtr<ID3D12Resource> materialBuffer;
-
-		if (not resourcesModule->CreateUploadBuffer(&data, alignUp(sizeof(BasicMaterialData), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT), uploadBuffer, "Material upload buffer")) return false;
-		if (not resourcesModule->CreateDefaultBuffer(uploadBuffer, alignUp(sizeof(BasicMaterialData), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT), materialBuffer, material.getName().c_str())) return false;
-
-		materialBuffers.push_back(materialBuffer);
-	}
 	return true;
 }
 
-inline bool Exercise5::createVertexSignature(ID3D12Device5* device)
+inline bool Exercise6::createVertexSignature(ID3D12Device5* device)
 {
 	// Create root signature with mvp + texture + sampler object on it for the vertex shader
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	CD3DX12_ROOT_PARAMETER rootParameters[4] = {};
+	CD3DX12_ROOT_PARAMETER rootParameters[5] = {};
 
 	// mvp //
-	rootParameters[0].InitAsConstants(sizeof(Matrix) / sizeof(UINT32), 0); // number of 32 bit elements in a matrix (second param is shader register index)
+	rootParameters[0].InitAsConstants(sizeof(Matrix) / sizeof(UINT32), 0, 0, D3D12_SHADER_VISIBILITY_VERTEX); // number of 32 bit elements in a matrix (second param is shader register index)
 
-	// cbuffer //
-	rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // (shader register 1)
+	// cbuffer 1 (perFrame one) //
+	rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL); // (shader register 1)
+
+	// cbuffer 2 (perInstance one) //
+	rootParameters[2].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_ALL); // (shader register 2)
 
 	// texture //
 	CD3DX12_DESCRIPTOR_RANGE tableRange;
 	tableRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0); // 1 range of 1 SRV descriptor, on register 0
-	rootParameters[2].InitAsDescriptorTable(1, &tableRange, D3D12_SHADER_VISIBILITY_PIXEL); // The descriptor table (1 range, specified by tableRange, visible on pixel shader)
+	rootParameters[3].InitAsDescriptorTable(1, &tableRange, D3D12_SHADER_VISIBILITY_PIXEL); // The descriptor table (1 range, specified by tableRange, visible on pixel shader)
 
 	// sampler //
 	CD3DX12_DESCRIPTOR_RANGE sampRange;
 	sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, ModuleSampler::Type::MAX_SAMPLERS, 0);
-	rootParameters[3].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameters[4].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	rootSignatureDesc.Init(UINT(std::size(rootParameters)), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT); // 0 for no static samplers (=> nullptr afterwards for sampler list)
 
@@ -159,7 +156,7 @@ inline bool Exercise5::createVertexSignature(ID3D12Device5* device)
 	return true;
 }
 
-inline bool Exercise5::createPipelineStateObject(ID3D12Device5* device)
+inline bool Exercise6::createPipelineStateObject(ID3D12Device5* device)
 {
 	// 1. Assign signature to pipeline description
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -174,7 +171,8 @@ inline bool Exercise5::createPipelineStateObject(ID3D12Device5* device)
 	// 3. Set vertex shader variables layout (on the shader, how they are)
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	}; // 1st param is our arbitrary name, 2nd is a number to distinguish between vars with the same name, 3r is format, 4th is Input slot (number of buffer), 5th is offset of element inside the buffer (D3D12_APPEND_ALIGNED_ELEMENT calculates it auto. based on previous variable)
 
 	psoDesc.InputLayout = { inputLayout, sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC) }; // 2n param. is number of variables
@@ -200,17 +198,22 @@ inline bool Exercise5::createPipelineStateObject(ID3D12Device5* device)
 	return true;
 }
 
-inline void Exercise5::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<uint8_t>& PS)
+inline void Exercise6::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<uint8_t>& PS)
 {
-	VS = DX::ReadData(L"Exercise4VS.cso");
-	PS = DX::ReadData(L"Exercise5PS.cso");
+	VS = DX::ReadData(L"Exercise6VS.cso");
+	PS = DX::ReadData(L"Exercise6PS.cso");
 }
 
-inline void Exercise5::setupMVP()
+inline void Exercise6::setupMVP()
 {
-	Matrix model = Matrix::CreateScale(modelScale, modelScale, modelScale);
+	const Matrix& modelMat = model.getModelMatrix();
 	view = cameraModule->getViewMatrix();
 	projection = cameraModule->getProjectionMatrix();
 
-	mvp = (model * view * projection).Transpose(); // transpose because the shader only accepts column-major matrices
+	mvp = (modelMat * view * projection).Transpose(); // transpose because the shader only accepts column-major matrices
+}
+
+inline void Exercise6::setupLighting()
+{
+	lightingData.viewPos = cameraModule->getPosition();
 }

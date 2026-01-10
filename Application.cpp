@@ -7,12 +7,14 @@
 #include "D3D12Module.h"
 #include "ModuleShaderDescriptors.h"
 #include "ModuleSampler.h"
+#include "ModuleRingBuffer.h"
 
 //#include "Exercise1.h"
 //#include "Exercise2.h"
 //#include "Exercise3.h"
 //#include "Exercise4.h"
-#include "Exercise5.h"
+//#include "Exercise5.h"
+#include "Exercise6.h"
 
 Application::Application(int argc, wchar_t** argv, void* hWnd)
 {
@@ -36,10 +38,14 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     samplerModule = new ModuleSampler();
     modules.push_back(samplerModule);
 
+    ringBufferModule = new ModuleRingBuffer();
+    modules.push_back(ringBufferModule);
+
     //modules.push_back(new Exercise2());
     //modules.push_back(new Exercise3());
     //modules.push_back(new Exercise4());
-    modules.push_back(new Exercise5());
+    //modules.push_back(new Exercise5());
+    modules.push_back(new Exercise6());
 }
 
 Application::~Application()

@@ -21,7 +21,7 @@ bool ModuleResources::init() {
     return ok;
 }
 
-bool ModuleResources::CreateUploadBuffer(const void* buffer, std::size_t numBytes, ComPtr<ID3D12Resource>& uploadBuffer, const char* name)
+bool ModuleResources::CreateUploadBuffer(const void* buffer, size_t numBytes, ComPtr<ID3D12Resource>& uploadBuffer, const char* name)
 {
     bool ok;
 
@@ -56,7 +56,7 @@ bool ModuleResources::CreateUploadBuffer(const void* buffer, std::size_t numByte
     return ok;
 }
 
-bool ModuleResources::CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBuffer, std::size_t numBytes, ComPtr<ID3D12Resource>& defaultBuffer, const char* name)
+bool ModuleResources::CreateDefaultBuffer(const ComPtr<ID3D12Resource>& uploadBuffer, size_t numBytes, ComPtr<ID3D12Resource>& defaultBuffer, const char* name)
 {
     bool ok;
 

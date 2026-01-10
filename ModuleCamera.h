@@ -14,9 +14,10 @@ public:
 
 	void update() override;
 
-	inline Matrix getProjectionMatrix() const { return projection; };
-	inline Matrix getViewMatrix() const { return view; };
+	Matrix getProjectionMatrix() const { return projection; };
+	Matrix getViewMatrix() const { return view; };
 
+	Vector3 getPosition() const { return position; };
 
 private:
 

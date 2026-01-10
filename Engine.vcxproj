@@ -119,6 +119,10 @@
       <AdditionalDependencies>WinPixEventRuntime.lib;DirectXTex.lib;D3DCompiler.lib;dxgi.lib;d3d12.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>.\3rdParty\WinPixEventRunTime\bin\x64;.\3rdParty\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug</AdditionalLibraryDirectories>
     </Link>
+    <FxCompile>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -181,6 +185,7 @@
     <ClInclude Include="Exercise3.h" />
     <ClInclude Include="Exercise4.h" />
     <ClInclude Include="Exercise5.h" />
+    <ClInclude Include="Exercise6.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GamePad.h" />
     <ClInclude Include="Globals.h" />
@@ -192,6 +197,7 @@
     <ClInclude Include="ModuleCamera.h" />
     <ClInclude Include="ModuleInput.h" />
     <ClInclude Include="ModuleResources.h" />
+    <ClInclude Include="ModuleRingBuffer.h" />
     <ClInclude Include="ModuleSampler.h" />
     <ClInclude Include="ModuleShaderDescriptors.h" />
     <ClInclude Include="Mouse.h" />
@@ -276,6 +282,7 @@
     <ClCompile Include="Exercise3.cpp" />
     <ClCompile Include="Exercise4.cpp" />
     <ClCompile Include="Exercise5.cpp" />
+    <ClCompile Include="Exercise6.cpp" />
     <ClCompile Include="GamePad.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -295,6 +302,7 @@
     <ClCompile Include="ModuleCamera.cpp" />
     <ClCompile Include="ModuleInput.cpp" />
     <ClCompile Include="ModuleResources.cpp" />
+    <ClCompile Include="ModuleRingBuffer.cpp" />
     <ClCompile Include="ModuleSampler.cpp" />
     <ClCompile Include="ModuleShaderDescriptors.cpp" />
     <ClCompile Include="Mouse.cpp" />
@@ -311,6 +319,7 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\Exercise6.hlsli" />
     <None Include="SimpleMath.inl" />
   </ItemGroup>
   <ItemGroup>
@@ -354,6 +363,20 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Qembed_debug %(AdditionalOptions)</AdditionalOptions>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\Exercise6PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="Shaders\Exercise6VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">-Qembed_debug %(AdditionalOptions)</AdditionalOptions>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.0</ShaderModel>
     </FxCompile>
   </ItemGroup>
