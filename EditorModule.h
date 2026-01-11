@@ -2,6 +2,7 @@
 
 #include "Module.h"
 #include "ImGuiPass.h"
+#include "ImGuizmo.h"
 
 #include "ModuleSampler.h"
 
@@ -29,9 +30,30 @@ public:
 	Vector3 getRotation() const { return Vector3(rotation[0], rotation[1], rotation[2]); };
 	Vector3 getTranslation() const { return Vector3(translation[0], translation[1], translation[2]); };
 
+	void setScale(float x, float y, float z) {
+		scale[0] = x;
+		scale[1] = y;
+		scale[2] = z;
+	}
+
+	void setRotation(float x, float y, float z) {
+		rotation[0] = x;
+		rotation[1] = y;
+		rotation[2] = z;
+	}
+
+	void setTranslation(float x, float y, float z) {
+		translation[0] = x;
+		translation[1] = y;
+		translation[2] = z;
+	}
+
 	Vector3 getLightDirection() const { return Vector3(lightDirection[0], lightDirection[1], lightDirection[2]); };
 	Vector3 getLightColor() const { return Vector3(lightColor[0], lightColor[1], lightColor[2]); };
 	Vector3 getAmbientColor() const { return Vector3(ambientColor[0], ambientColor[1], ambientColor[2]); };
+
+	ImGuizmo::OPERATION getGuizmoOperation() const { return gizmoOperation; };
+	bool guizmoEnabled() const { return showGuizmo; };
 
 	float getPhongKd() const { return Kd; };
 	float getPhongKs() const { return Ks; };
@@ -46,6 +68,9 @@ private:
 	bool showGrid = true;
 	bool showAxis = true; // used for current selected object on screen
 	int usedSampler = int (ModuleSampler::LINEAR_WRAP);
+
+	ImGuizmo::OPERATION gizmoOperation = ImGuizmo::TRANSLATE;  // Related to imGuizmo, to enable
+	bool showGuizmo = false;                                   // graphic model transforming elements
 
 	// Model parameters
 	float scale[3] = {1.f, 1.f, 1.f}; // we use arrays because that is the required format for Dear imGui calls

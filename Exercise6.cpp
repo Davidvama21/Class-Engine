@@ -211,27 +211,64 @@ inline void Exercise6::setupMVP()
 {
 	view = cameraModule->getViewMatrix();
 	projection = cameraModule->getProjectionMatrix();
-
+	ImGuizmo::OPERATION guizmoOp = editorModule->getGuizmoOperation();
+	
 	if (editorModule->changedTransform()) { // => recalculate model matrix
 		Vector3 scale = editorModule->getScale() * modelScale;
 		Vector3 rotation = editorModule->getRotation();
 		Vector3 translation = editorModule->getTranslation();
 		Matrix modelMat;
-		
+
 		// For now, I don't know how to do it differently
 		float scaleArray[3] = {scale.x, scale.y, scale.z};
 		float rotationArray[3] = {rotation.x, rotation.y, rotation.z};
 		float translationArray[3] = {translation.x, translation.y, translation.z};
 		ImGuizmo::RecomposeMatrixFromComponents(translationArray, rotationArray, scaleArray, (float*)&modelMat);
-		model.setModelMatrix(modelMat);
+
+		if (editorModule->guizmoEnabled()) {
+			
+			// Guizmo interface manipulation
+			ImGuizmo::Manipulate((const float*)&view, (const float*)&projection, guizmoOp, ImGuizmo::LOCAL, (float*)&modelMat);
+			if (ImGuizmo::IsUsing()) { // if it was used, we have to update model parameters in editorModule
+
+				ImGuizmo::DecomposeMatrixToComponents((float*)&modelMat, translationArray, rotationArray, scaleArray);
+
+				updateModelDataInEditor(scaleArray, rotationArray, translationArray, guizmoOp);
+			}
+		}
+		
+		model.setModelMatrix(modelMat); // update matrix
 
 		mvp = (modelMat * view * projection).Transpose(); // transpose because the shader only accepts column-major matrices
 
-	}else { // calculation with old model matrix
+	}else{ // calculation with old model matrix
 
-		const Matrix& modelMat = model.getModelMatrix();
+		if (editorModule->guizmoEnabled()) { // we will have to copy the last model matrix, so that we can apply guizmo alterations
 		
-		mvp = (modelMat * view * projection).Transpose(); // (same)
+			Matrix modelMat = model.getModelMatrixCopy();
+
+			// Guizmo interface manipulation
+			ImGuizmo::Manipulate((const float*)&view, (const float*)&projection, guizmoOp, ImGuizmo::LOCAL, (float*)&modelMat);
+			if (ImGuizmo::IsUsing()) {
+
+				float scaleArray[3];
+				float rotationArray[3];
+				float translationArray[3];
+				ImGuizmo::DecomposeMatrixToComponents((float*)&modelMat, translationArray, rotationArray, scaleArray);
+
+				updateModelDataInEditor(scaleArray, rotationArray, translationArray, guizmoOp);
+
+				model.setModelMatrix(modelMat); // update matrix
+			}
+
+			mvp = (modelMat * view * projection).Transpose(); // (same)
+
+		}else { // no need to copy 
+
+			const Matrix& modelMat = model.getModelMatrix();
+			mvp = (modelMat * view * projection).Transpose();
+		}
+
 	}
 }
 
@@ -254,5 +291,25 @@ inline void Exercise6::setupLighting()
 
 		BasicMaterial* mat = model.getMaterial(i);
 		mat->setPhongParams(kd, ks, shininess);
+	}
+}
+
+inline void Exercise6::updateModelDataInEditor(float scale[], float rotation[], float translation[], ImGuizmo::OPERATION guizmoOp)
+{
+	switch (guizmoOp) {
+
+	case ImGuizmo::TRANSLATE:
+
+		editorModule->setTranslation(translation[0], translation[1], translation[2]);
+		break;
+
+	case ImGuizmo::ROTATE:
+
+		editorModule->setRotation(rotation[0], rotation[1], rotation[2]);
+		break;
+
+	case ImGuizmo::SCALE:
+
+		editorModule->setScale(scale[0], scale[1], scale[2]);
 	}
 }

@@ -29,6 +29,8 @@ public:
 	const Matrix& getModelMatrix() const { return matrix; } // to transform positions into world space
 	void setModelMatrix(const Matrix& m) { matrix = m; }
 
+	Matrix getModelMatrixCopy() const { return matrix; } // Useful in certain cases
+
 	Matrix getNormalMatrix() const // to transform normals into world space
 	{
 		Matrix normal = matrix;

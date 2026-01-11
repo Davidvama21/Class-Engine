@@ -56,6 +56,17 @@ void EditorModule::showExercise4Window()
 
 void EditorModule::showExercise6Window()
 {
+	// Guizmo set up //
+	ImGuizmo::BeginFrame(); // needed for guizmo functionality
+
+	D3D12Module* d3d12 = app->getD3D12Module();
+	unsigned width = d3d12->getWindowWidth();
+	unsigned height = d3d12->getWindowHeight();
+
+	// Set the viewport size (adjust based on your application)
+	ImGuizmo::SetRect(0, 0, float(width), float(height));
+
+
 	ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Geometry Viewer Options");
 
@@ -63,8 +74,20 @@ void EditorModule::showExercise6Window()
 	ImGui::Text("FPS: %f", app->getFPS());
 	ImGui::Checkbox("Show grid", &showGrid);
 	ImGui::Checkbox("Show axis", &showAxis);
+	ImGui::Checkbox("Show guizmo", &showGuizmo);
 	
 	ImGui::Separator();
+
+	// Guizmo interface data
+	if (ImGui::IsKeyPressed(ImGuiKey_T)) gizmoOperation = ImGuizmo::TRANSLATE;
+	if (ImGui::IsKeyPressed(ImGuiKey_R)) gizmoOperation = ImGuizmo::ROTATE;
+	if (ImGui::IsKeyPressed(ImGuiKey_S)) gizmoOperation = ImGuizmo::SCALE;
+
+	ImGui::RadioButton("Translate", (int*)&gizmoOperation, (int)ImGuizmo::TRANSLATE);
+	ImGui::SameLine();
+	ImGui::RadioButton("Rotate", (int*)&gizmoOperation, ImGuizmo::ROTATE);
+	ImGui::SameLine();
+	ImGui::RadioButton("Scale", (int*)&gizmoOperation, ImGuizmo::SCALE);
 
 	// Model data
 	transformChanged = ImGui::DragFloat3("Translation", translation, 0.1f);

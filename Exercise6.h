@@ -74,6 +74,8 @@ private:
 
 	inline void setupLighting();
 
+	inline void updateModelDataInEditor(float scale[], float rotation[], float translation[], ImGuizmo::OPERATION guizmoOp);
+
 	D3D12_VIEWPORT getViewport(unsigned int width, unsigned int height) const
 	{
 		return D3D12_VIEWPORT{ 0.0, 0.0, float(width), float(height) , 0.0, 1.0 };
