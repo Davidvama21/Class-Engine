@@ -3,6 +3,7 @@
 #include "Application.h"
 #include "D3D12Module.h"
 #include "Keyboard.h"
+#include "EditorModule.h"
 
 #include "ModuleCamera.h"
 
@@ -10,8 +11,9 @@ bool ModuleCamera::init()
 {
     // Camera params.
     position = Vector3(0.0f, 10.0f, 10.0f);
-    target = objectPosition = Vector3::Zero;
+    target = Vector3::Zero;
     up = Vector3::Up;
+    objectPosition = app->getEditorModule()->getTranslation();
 
     d3d12Module = app->getD3D12Module();
 
@@ -41,6 +43,7 @@ void ModuleCamera::update()
     projection = Matrix::CreatePerspectiveFieldOfView(fov, aspectRatio, zNear, zFar);
 
     // 2. Update view
+    objectPosition = app->getEditorModule()->getTranslation();
 
     const Mouse::State& mouseState = Mouse::Get().GetState();
     const Keyboard::State& keyState = Keyboard::Get().GetState();
