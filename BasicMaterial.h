@@ -71,7 +71,11 @@ public:
 	
 	}
 
-
+	void setPhongParams(float Kd, float Ks, float shininess) {
+		this->Kd = Kd;
+		this->Ks = Ks;
+		this->shininess = shininess;
+	}
 
 	Type getType() const { return type; }
 	const std::string& getName() const { return name; }

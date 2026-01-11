@@ -84,9 +84,9 @@ void Exercise5::render()
 
 	for (const Mesh& mesh : model.getMeshes())
 	{
-		const BasicMaterial& material = model.getMaterials()[mesh.getMaterialIndex()];
+		const BasicMaterial* material = model.getMaterials()[mesh.getMaterialIndex()].get();
 		commandList->SetGraphicsRootConstantBufferView(1, materialBuffers[mesh.getMaterialIndex()]->GetGPUVirtualAddress() ); // set cbuffer handle (from the material used by the mesh)
-		commandList->SetGraphicsRootDescriptorTable(2, material.getGPUHandle(model.getDescTable()) ); // set texture handle (same)
+		commandList->SetGraphicsRootDescriptorTable(2, material->getGPUHandle(model.getDescTable()) ); // set texture handle (same)
 
 		mesh.draw(commandList);
 	}
@@ -110,14 +110,14 @@ inline bool Exercise5::loadModelData(ModuleResources* resourcesModule)
 	materialBuffers.reserve(model.getNumMaterials());
 	for (int i = 0, count = model.getNumMaterials(); i < count; ++i) {
 
-		const BasicMaterial& material = model.getMaterials()[i];
-		BasicMaterialData data = material.getBasicData();
+		const BasicMaterial* material = model.getMaterials()[i].get();
+		BasicMaterialData data = material->getBasicData();
 		
 		ComPtr<ID3D12Resource> uploadBuffer;
 		ComPtr<ID3D12Resource> materialBuffer;
 
 		if (not resourcesModule->CreateUploadBuffer(&data, alignUp(sizeof(BasicMaterialData), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT), uploadBuffer, "Material upload buffer")) return false;
-		if (not resourcesModule->CreateDefaultBuffer(uploadBuffer, alignUp(sizeof(BasicMaterialData), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT), materialBuffer, material.getName().c_str())) return false;
+		if (not resourcesModule->CreateDefaultBuffer(uploadBuffer, alignUp(sizeof(BasicMaterialData), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT), materialBuffer, material->getName().c_str())) return false;
 
 		materialBuffers.push_back(materialBuffer);
 	}

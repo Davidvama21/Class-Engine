@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <span>
 #include "ModuleShaderDescriptors.h"
 #include "Mesh.h"
 #include "BasicMaterial.h"
@@ -20,8 +21,9 @@ public:
 	ModuleShaderDescriptors& getDescTable() { return descTable;}
 
 	const std::vector <Mesh>& getMeshes() const { return meshes; }
-	const std::vector <BasicMaterial>& getMaterials() const { return materials; }
-
+	const std::vector <std::unique_ptr<BasicMaterial>>& getMaterials() const { return materials; }
+	BasicMaterial* getMaterial(unsigned int index) const { return materials[index].get(); }
+	
 	unsigned int getNumMaterials() const { return materials.size(); }
 
 	const Matrix& getModelMatrix() const { return matrix; } // to transform positions into world space
@@ -39,7 +41,7 @@ public:
 private:
 
 	std::vector <Mesh> meshes; // the primitives in tinygltf models
-	std::vector <BasicMaterial> materials;
+	std::vector <std::unique_ptr<BasicMaterial>> materials;
 
 	ModuleShaderDescriptors descTable; // will be used for textures in materials
 

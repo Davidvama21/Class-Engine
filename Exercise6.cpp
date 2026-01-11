@@ -7,6 +7,8 @@
 #include "ModuleRingBuffer.h"
 #include <ReadData.h>
 
+#include "ImGuizmo.h" // For now only to get recompose matrix function
+
 #include "Exercise6.h"
 
 bool Exercise6::init()
@@ -26,6 +28,7 @@ bool Exercise6::init()
 	ringBufferModule = app->getModuleRingBuffer();
 
 	debugDraw = std::unique_ptr<DebugDrawPass>(new DebugDrawPass(device, d3d12Module->getCommandQueue()));
+	modelNoScale = Matrix::Identity;
 
 	return true;
 }
@@ -87,12 +90,12 @@ void Exercise6::render()
 
 	for (const Mesh& mesh : model.getMeshes())
 	{
-		const BasicMaterial& material = model.getMaterials()[mesh.getMaterialIndex()];
+		const BasicMaterial* material = model.getMaterials()[mesh.getMaterialIndex()].get();
 
-		PerInstance matData = { model.getModelMatrix().Transpose(), model.getNormalMatrix().Transpose(), material.getPhongData()};
+		PerInstance matData = { model.getModelMatrix().Transpose(), model.getNormalMatrix().Transpose(), material->getPhongData()};
 		commandList->SetGraphicsRootConstantBufferView(2, ringBufferModule->allocBuffer(&matData, sizeof(PerInstance))); // Pass the perInstance buffer (via ring buffer address)
 
-		commandList->SetGraphicsRootDescriptorTable(3, material.getGPUHandle(model.getDescTable())); // set texture handle (same)
+		commandList->SetGraphicsRootDescriptorTable(3, material->getGPUHandle(model.getDescTable())); // set texture handle (same)
 
 		mesh.draw(commandList);
 	}
@@ -103,7 +106,7 @@ void Exercise6::render()
 	// Debug elements (grid, arrows...)
 
 	if (editorModule->gridEnabled()) dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray); // Grid plane
-	if (editorModule->objectAxisEnabled()) dd::axisTriad(ddConvert(Matrix::Identity), 0.1f, 1.0f); // XYZ axis
+	if (editorModule->objectAxisEnabled()) dd::axisTriad(ddConvert(Matrix::CreateTranslation(editorModule->getTranslation())), 0.1f, 1.0f); // XYZ axis
 
 	debugDraw->record(commandList, windowWidth, windowHeight, view, projection);
 }
@@ -206,14 +209,50 @@ inline void Exercise6::getCompiledShaders(std::vector<uint8_t>& VS, std::vector<
 
 inline void Exercise6::setupMVP()
 {
-	const Matrix& modelMat = model.getModelMatrix();
 	view = cameraModule->getViewMatrix();
 	projection = cameraModule->getProjectionMatrix();
 
-	mvp = (modelMat * view * projection).Transpose(); // transpose because the shader only accepts column-major matrices
+	if (editorModule->changedTransform()) { // => recalculate model matrix
+		Vector3 scale = editorModule->getScale() * modelScale;
+		Vector3 rotation = editorModule->getRotation();
+		Vector3 translation = editorModule->getTranslation();
+		Matrix modelMat;
+		
+		// For now, I don't know how to do it differently
+		float scaleArray[3] = {scale.x, scale.y, scale.z};
+		float rotationArray[3] = {rotation.x, rotation.y, rotation.z};
+		float translationArray[3] = {translation.x, translation.y, translation.z};
+		ImGuizmo::RecomposeMatrixFromComponents(translationArray, rotationArray, scaleArray, (float*)&modelMat);
+		model.setModelMatrix(modelMat);
+
+		mvp = (modelMat * view * projection).Transpose(); // transpose because the shader only accepts column-major matrices
+
+	}else { // calculation with old model matrix
+
+		const Matrix& modelMat = model.getModelMatrix();
+		
+		mvp = (modelMat * view * projection).Transpose(); // (same)
+	}
 }
 
 inline void Exercise6::setupLighting()
 {
+	lightingData.L = editorModule->getLightDirection();
+	lightingData.Lc = editorModule->getLightColor();
+	lightingData.Ac = editorModule->getAmbientColor();
+
+	lightingData.L.Normalize(); // because it might be not normalized
+
 	lightingData.viewPos = cameraModule->getPosition();
+
+	// Phong data update (SEEMS INEFFICIENT; TO CHANGE?)
+
+	float kd = editorModule->getPhongKd();
+	float ks = editorModule->getPhongKs();
+	float shininess = editorModule->getPhongShininess();
+	for (unsigned int i = 0; i < model.getNumMaterials(); ++i) {
+
+		BasicMaterial* mat = model.getMaterial(i);
+		mat->setPhongParams(kd, ks, shininess);
+	}
 }

@@ -40,6 +40,8 @@ private:
 	Matrix mvp; // will contain transformations for vertices
 	Matrix projection, view;
 
+	Matrix modelNoScale; // model matrix for the debug drawings
+
 	PerFrame lightingData;
 
 	std::string modelPath = "Assets/Models/Duck/Duck.gltf";
@@ -80,7 +82,7 @@ private:
 	D3D12_RECT getScissorRect(unsigned int width, unsigned int height) const
 	{
 		return D3D12_RECT{ 0, 0, long(width), long(height) };
-	}
+	};
 
 };
 

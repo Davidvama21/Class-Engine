@@ -27,7 +27,8 @@ bool Model::load(const std::string& assetFileName, const std::string& assetFolde
 		meshes.reserve(numMeshes);
 
 		// 2. Reserve space for materials and potential texture descriptors (YOU MAY WANT TO CHANGE THIS, AND TRY TO CHECK FOR TEXTURES BEFORE RESERVING THE HEAP)
-		materials.reserve(model.materials.size());
+		materials = std::vector <std::unique_ptr<BasicMaterial>>(model.materials.size());
+
 		descTable = ModuleShaderDescriptors(model.materials.size() + 1); // + 1 to reserve a null descriptor
 		if (not descTable.init()) return false;
 
@@ -46,10 +47,9 @@ bool Model::load(const std::string& assetFileName, const std::string& assetFolde
 		}
 
 		for (unsigned int i = 0; i < model.materials.size(); ++i) {
-			BasicMaterial material;
-			if (not material.load(model, model.materials[i], descTable, assetFolder, materialType))
+			materials[i] = std::unique_ptr<BasicMaterial>(new BasicMaterial());
+			if (not materials[i]->load(model, model.materials[i], descTable, assetFolder, materialType))
 				return false;
-			materials.push_back(material);
 		}
 
 	}else {

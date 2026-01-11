@@ -5,9 +5,10 @@ SamplerState colourSamp : register(s0);
 
 float4 main(float3 worldPos : POSITION, float3 normal : NORMAL, float2 coord : TEXCOORD) : SV_TARGET
 {
+    /*
     normal = normalize(normal); // because it was interpolated and might not be normalized
     float3 surfaceColor = hasDiffuseTex ? colourTex.Sample(colourSamp, coord).rgb * diffuseColour.rgb : diffuseColour.rgb;
-    float minNormPerLight = dot(-normal, L);
+    float minNormPerLight = -dot(normal, L);
     
     float3 color;
     if (minNormPerLight > 0)
@@ -20,5 +21,17 @@ float4 main(float3 worldPos : POSITION, float3 normal : NORMAL, float2 coord : T
     }else
         color = Ac * surfaceColor;
     
-    return float4(color, 1.0);
+    return float4(color, 1.0)
+    */
+    
+    float3 Cd = hasDiffuseTex ? colourTex.Sample(colourSamp, coord).rgb * diffuseColour.rgb : diffuseColour.rgb;
+    float3 N = normalize(normal); // because it was interpolated and might not be normalized
+    float3 R = reflect(L, N);
+    float3 V = normalize(viewPos - worldPos);
+    float3 dotVR = saturate(dot(V, R)); // so that it is not < 0
+    float dotNL = saturate(-dot(L, N)); // so that it is not < 0 (-dot(L, N) = dot(-N, L))
+    
+    float3 colour = Cd * Kd * dotNL * Lc + Ac * Cd + Ks * Lc * pow(dotVR, shininess);
+
+    return float4(colour, 1.0);
 }
